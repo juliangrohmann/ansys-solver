@@ -1,4 +1,4 @@
 import numpy as np
-from ..parametric_solver.solver import BilinearSolver
+from parametric_solver import solver
 
 print("TESTING")
