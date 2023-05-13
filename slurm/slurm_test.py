@@ -1,4 +1,8 @@
 import numpy as np
-from parametric_solver import solver
+import sys
+
+from parametric_solver.solver import BilinearSolver
+
+sys.path.append('../parametric_solver')
 
 print("TESTING")
