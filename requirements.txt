@@ -1,4 +1,4 @@
 ansys-mapdl-core
 numpy
 scipy
-urllib3=1.26.15
+urllib3==1.26.15
