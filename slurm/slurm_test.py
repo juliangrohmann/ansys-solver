@@ -1,11 +1,11 @@
 import numpy as np
 import sys
+import os
 import pkgutil
 
-sys.path.append('../parametric_solver')
+home = os.path.expanduser('~')
+sys.path.append(os.path.join(home, 'scratch'))
 
-# Iterate over all modules in the Python path
-for module in pkgutil.iter_modules():
-    print(module.name)
+from parametric_solver.solver import BilinearSolver
 
 print("TESTING")
