@@ -10,4 +10,4 @@
 
 cd ~/scratch
 source venv/bin/activate
-srun python slurm_test.py
+srun python slurm/slurm_test.py
