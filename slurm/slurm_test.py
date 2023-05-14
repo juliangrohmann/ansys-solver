@@ -10,7 +10,7 @@ def init_env():
     sys.path.append(scratch_path)
 
     ansys_root = os.environ['ANSYS_ROOT']
-    ansys_exe = os.path.join(ansys_root, 'v212', 'ansys', 'bin', 'ansys212')
+    ansys_exe = os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
     print(f"Setting ANSYS executable path: {ansys_exe}")
     pymapdl.change_default_ansys_path(ansys_exe)
 
@@ -29,25 +29,11 @@ def print_directory_tree(start_path):
 
 SCRATCH_PATH = init_env()
 # SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
-# from parametric_solver.solver import BilinearSolver
-#
-# HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
-# OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
-#
-# solver = BilinearSolver(HEMJ_INP, run_location=OUTPUR_DIR, loglevel="INFO")
-# solver.add_sample(200e9, 700e6, 70e9)
-#
-# try:
-#     solver.solve(verbose=True)
-# except Exception as e:
-#     print("======== EXCEPTION START =========")
-#     traceback.print_exc()
-#     print(f"Caught an exception: {e}")
-#     print("======== EXCEPTION END =========")
-#     print("======== SCRATCH DIR =========")
-#     print_directory_tree(os.path.join(os.path.expanduser('~'), 'scratch', 'output'))
-#     print("======== LICENSE DIR =========")
-#     print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
+from parametric_solver.solver import BilinearSolver
 
+HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
+OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
 
-print_directory_tree(os.path.join(SCRATCH_PATH, 'output'))
+solver = BilinearSolver(HEMJ_INP, run_location=OUTPUR_DIR, loglevel="INFO")
+solver.add_sample(200e9, 700e6, 70e9)
+solver.solve(verbose=True)
