@@ -16,12 +16,28 @@ def init_env():
     return scratch_path
 
 
+def find_ansys_directory(start_path):
+    for root, dirs, _ in os.walk(start_path):
+        if '.ansys' in dirs:
+            return os.path.join(root, '.ansys')
+    return None
+
+
 SCRATCH_PATH = init_env()
 # SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
 from parametric_solver.solver import BilinearSolver
 
 HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 
-solver = BilinearSolver(HEMJ_INP)
-solver.add_sample(200e9, 700e6, 70e9)
-solver.solve()
+# solver = BilinearSolver(HEMJ_INP)
+# solver.add_sample(200e9, 700e6, 70e9)
+# solver.solve()
+
+
+start_path = os.path.expanduser('~')
+ansys_dir = find_ansys_directory(start_path)
+
+if ansys_dir:
+    print(f"'.ansys' directory found at: {ansys_dir}")
+else:
+    print("'.ansys' directory not found.")
