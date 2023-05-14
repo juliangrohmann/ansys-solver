@@ -15,10 +15,11 @@ _mapdl = None
 
 
 class ParametricSolver(abc.ABC):
-    def __init__(self, inp_file, **kwargs):
+    def __init__(self, inp_file, write_path="", **kwargs):
         self._inp_file = inp_file
         self._samples = []
         self._results = {}
+        self._write_path = write_path
         self._mapdl_kwargs = kwargs
 
         if not inp.is_inp_valid(inp_file):
@@ -33,7 +34,7 @@ class ParametricSolver(abc.ABC):
     def results(self):
         return self._results
 
-    def solve(self, write_path="", read_cache=True, verbose=False):
+    def solve(self, read_cache=True, verbose=False):
         start_time = time.time()
         i = 1
         n = len(self._samples)
@@ -42,7 +43,7 @@ class ParametricSolver(abc.ABC):
             print(f"Solving [{i}/{n}]\t\tTime Remaining: {_eval_remaining_time(start_time, i - 1, n - i + 1)}")
             print(f"Sample: {sample}")
 
-            filepath = os.path.join(write_path, self._eval_filename(sample))
+            filepath = os.path.join(self._write_path, self._eval_filename(sample))
             if read_cache and os.path.exists(filepath):
                 with open(filepath, "rb") as f:
                     print(f"Caching result at {filepath} ...")

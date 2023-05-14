@@ -1,4 +1,6 @@
 git+https://github.com/juliangrohmann/slurm_pymapdl.git
 numpy
 scipy
+flask
+requests
 urllib3==1.26.15

@@ -22,4 +22,6 @@ sleep 60
 
 cd ~/scratch
 source venv/bin/activate
-srun python slurm/slurm_test.py
+srun python slurm/compute_node.py
+
+python slurm/head_node.py
