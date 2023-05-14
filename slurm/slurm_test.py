@@ -43,4 +43,7 @@ except Exception as e:
     traceback.print_exc()
     print(f"Caught an exception: {e}")
     print("======== EXCEPTION END =========")
-    print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys_fork'))
+    print("======== SCRATCH DIR =========")
+    print_directory_tree(os.path.join(os.path.expanduser('~'), 'scratch'))
+    print("======== LICENSE DIR =========")
+    print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
