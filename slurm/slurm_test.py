@@ -10,7 +10,7 @@ def init_env():
     sys.path.append(scratch_path)
 
     ansys_root = os.environ['ANSYS_ROOT']
-    ansys_exe = os.path.join(ansys_root, 'v212', 'ansys', 'bin', 'ansys231')
+    ansys_exe = os.path.join(ansys_root, 'v212', 'ansys', 'bin', 'ansys212')
     print(f"Setting ANSYS executable path: {ansys_exe}")
     pymapdl.change_default_ansys_path(ansys_exe)
 
