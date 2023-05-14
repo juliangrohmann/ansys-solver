@@ -3,9 +3,12 @@ import sys
 import os
 import pkgutil
 
-home = os.path.expanduser('~')
-sys.path.append(os.path.join(home, 'scratch'))
+HOME = os.path.expanduser('~')
+INP_PATH = sys.path.append(os.path.join(HOME, 'scratch', 'inp', 'hemj_v2.inp'))
 
 from parametric_solver.solver import BilinearSolver
 
-print("TESTING")
+
+solver = BilinearSolver(INP_PATH)
+solver.add_sample(200e9, 700e6, 70e9)
+solver.solve()
