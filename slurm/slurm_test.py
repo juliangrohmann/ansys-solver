@@ -29,22 +29,25 @@ def print_directory_tree(start_path):
 
 SCRATCH_PATH = init_env()
 # SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
-from parametric_solver.solver import BilinearSolver
+# from parametric_solver.solver import BilinearSolver
+#
+# HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
+# OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
+#
+# solver = BilinearSolver(HEMJ_INP, run_location=OUTPUR_DIR, loglevel="INFO")
+# solver.add_sample(200e9, 700e6, 70e9)
+#
+# try:
+#     solver.solve(verbose=True)
+# except Exception as e:
+#     print("======== EXCEPTION START =========")
+#     traceback.print_exc()
+#     print(f"Caught an exception: {e}")
+#     print("======== EXCEPTION END =========")
+#     print("======== SCRATCH DIR =========")
+#     print_directory_tree(os.path.join(os.path.expanduser('~'), 'scratch', 'output'))
+#     print("======== LICENSE DIR =========")
+#     print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
 
-HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
-OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
 
-solver = BilinearSolver(HEMJ_INP, run_location=OUTPUR_DIR, loglevel="INFO")
-solver.add_sample(200e9, 700e6, 70e9)
-
-try:
-    solver.solve(verbose=True)
-except Exception as e:
-    print("======== EXCEPTION START =========")
-    traceback.print_exc()
-    print(f"Caught an exception: {e}")
-    print("======== EXCEPTION END =========")
-    print("======== SCRATCH DIR =========")
-    print_directory_tree(os.path.join(os.path.expanduser('~'), 'scratch', 'output'))
-    print("======== LICENSE DIR =========")
-    print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
+print_directory_tree(os.path.join(SCRATCH_PATH, 'output'))
