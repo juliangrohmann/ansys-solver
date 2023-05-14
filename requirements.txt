@@ -1,4 +1,4 @@
-ansys-mapdl-core
+git+https://github.com/juliangrohmann/slurm_pymapdl.git
 numpy
 scipy
 urllib3==1.26.15

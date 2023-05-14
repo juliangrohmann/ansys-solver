@@ -10,7 +10,7 @@ def init_env():
     sys.path.append(scratch_path)
 
     ansys_root = os.environ['ANSYS_ROOT']
-    ansys_exe = os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
+    ansys_exe = os.path.join(ansys_root, 'v231', 'ansys_fork', 'bin', 'ansys231')
     print(f"Setting ANSYS executable path: {ansys_exe}")
     pymapdl.change_default_ansys_path(ansys_exe)
 
@@ -37,10 +37,10 @@ solver = BilinearSolver(HEMJ_INP)
 solver.add_sample(200e9, 700e6, 70e9)
 
 try:
-    solver.solve()
+    solver.solve(verbose=True)
 except Exception as e:
     print("======== EXCEPTION START =========")
     traceback.print_exc()
     print(f"Caught an exception: {e}")
     print("======== EXCEPTION END =========")
-    print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
+    print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys_fork'))

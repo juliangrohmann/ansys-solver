@@ -2,6 +2,9 @@ import abc
 import pickle
 import os
 import time
+import sys
+
+sys.path.append('..')
 from ansys.mapdl.core import launch_mapdl
 
 import parametric_solver.inp as inp
