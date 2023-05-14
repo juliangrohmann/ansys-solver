@@ -15,10 +15,11 @@ _mapdl = None
 
 
 class ParametricSolver(abc.ABC):
-    def __init__(self, inp_file):
+    def __init__(self, inp_file, **kwargs):
         self._inp_file = inp_file
         self._samples = []
         self._results = {}
+        self._mapdl_kwargs = kwargs
 
         if not inp.is_inp_valid(inp_file):
             print("Unprocessed input file. Processing ...")
@@ -71,7 +72,7 @@ class ParametricSolver(abc.ABC):
         global _mapdl
 
         if not _mapdl:
-            _mapdl = _init_mapdl()
+            _mapdl = _init_mapdl(**self._mapdl_kwargs)
 
         _mapdl.clear()
         _mapdl.input(inp_path)
@@ -90,8 +91,8 @@ class ParametricSolver(abc.ABC):
 
 
 class BilinearSolver(ParametricSolver):
-    def __init__(self, inp_file):
-        super().__init__(inp_file)
+    def __init__(self, inp_file, **kwargs):
+        super().__init__(inp_file, **kwargs)
 
     def add_sample(self, elastic_mod, yield_strength, tangent_mod):
         self.samples.append((elastic_mod, yield_strength, tangent_mod))
@@ -111,8 +112,8 @@ class BilinearSolver(ParametricSolver):
 
 
 class PowerLawSolver(ParametricSolver):
-    def __init__(self, inp_file):
-        super().__init__(inp_file)
+    def __init__(self, inp_file, **kwargs):
+        super().__init__(inp_file, **kwargs)
 
     def add_sample(self, elastic_mod, yield_strength, exponent):
         self.samples.append((elastic_mod, yield_strength, exponent))
@@ -131,9 +132,9 @@ class PowerLawSolver(ParametricSolver):
         mapdl_inst.tbdata(1, yield_strength, exponent)
 
 
-def _init_mapdl():
+def _init_mapdl(**kwargs):
     print("Connecting to APDL ...")
-    mapdl_inst = launch_mapdl(loglevel='INFO')
+    mapdl_inst = launch_mapdl(**kwargs)
     print("Connected.")
     return mapdl_inst
 
