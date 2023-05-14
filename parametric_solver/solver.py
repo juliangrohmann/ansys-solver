@@ -101,6 +101,7 @@ class BilinearSolver(ParametricSolver):
     def _set_mat_props(self, sample, mat_id, mapdl_inst):
         elastic_mod, yield_strength, tangent_mod = sample
 
+        mapdl_inst.tbdele("PLAS", mat_id)
         mapdl_inst.mp("EX", mat_id, elastic_mod)
         mapdl_inst.tb("PLAS", mat_id, "", "", "BISO")
         mapdl_inst.tbdata(1, yield_strength, tangent_mod)
@@ -121,6 +122,7 @@ class PowerLawSolver(ParametricSolver):
     def _set_mat_props(self, sample, mat_id, mapdl_inst):
         elastic_mod, yield_strength, exponent = sample
 
+        mapdl_inst.tbdele("PLAS", mat_id)
         mapdl_inst.mp("EX", mat_id, elastic_mod)
         mapdl_inst.tb("PLAS", mat_id, "", "", "NLISO")
         mapdl_inst.tbdata(1, yield_strength, exponent)
