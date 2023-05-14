@@ -8,7 +8,7 @@
 #SBATCH -o %j.out
 #SBATCH --mail-type=ALL
 
-module load ansys/2023R1
+module load ansys/2021R1
 
 cd ~/scratch/output
 "/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 2   -port 50052 -grpc &
