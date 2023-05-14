@@ -27,23 +27,22 @@ def print_directory_tree(start_path):
             print(f'{sub_indent}{f}')
 
 
-IS_SLURM = False
-
-if IS_SLURM:
-    SCRATCH_PATH = init_env()
-else:
-    SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
-
+SCRATCH_PATH = init_env()
 from parametric_solver.solver import BilinearSolver
 
 HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
+SOLUTION_DIR = os.path.join(OUTPUR_DIR, 'solutions')
+RUN_DIR = os.path.join(OUTPUR_DIR, os.environ.get("SLURM_JOB_ID"))
 
 solver = BilinearSolver(
     HEMJ_INP,
-    run_location=OUTPUR_DIR if IS_SLURM else None,
+    run_location=RUN_DIR,
     loglevel="INFO",
-    start_instance=False if IS_SLURM else None)
+    start_instance=False)
 
 solver.add_sample(200e9, 700e6, 70e9)
-solver.solve(verbose=True, write_path=OUTPUR_DIR)
+solver.add_sample(200e9, 700e6, 80e9)
+solver.add_sample(200e9, 700e6, 90e9)
+
+solver.solve(verbose=True, write_path=SOLUTION_DIR)
