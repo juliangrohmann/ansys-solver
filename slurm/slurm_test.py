@@ -16,6 +16,16 @@ def init_env():
     return scratch_path
 
 
+def print_directory_tree(start_path):
+    for root, dirs, files in os.walk(start_path):
+        level = root.replace(start_path, '').count(os.sep)
+        indent = ' ' * 4 * level
+        print(f'{indent}{os.path.basename(root)}/')
+        sub_indent = ' ' * 4 * (level + 1)
+        for f in files:
+            print(f'{sub_indent}{f}')
+
+
 SCRATCH_PATH = init_env()
 # SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
 from parametric_solver.solver import BilinearSolver
@@ -24,4 +34,8 @@ HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 
 solver = BilinearSolver(HEMJ_INP)
 solver.add_sample(200e9, 700e6, 70e9)
-solver.solve()
+
+try:
+    solver.solve()
+except Exception:
+    print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
