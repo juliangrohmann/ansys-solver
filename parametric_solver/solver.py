@@ -130,7 +130,7 @@ class PowerLawSolver(ParametricSolver):
 
 def _init_mapdl():
     print("Connecting to APDL ...")
-    mapdl_inst = launch_mapdl()
+    mapdl_inst = launch_mapdl(loglevel='INFO')
     print("Connected.")
     return mapdl_inst
 

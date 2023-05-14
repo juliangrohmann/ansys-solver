@@ -1,23 +1,28 @@
-import numpy as np
 import sys
 import os
-import pkgutil
 from ansys.mapdl import core as pymapdl
 
-HOME = os.path.expanduser('~')
-SCRATCH_PATH = os.path.join(HOME, 'scratch')
-HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
-ANSYS_ROOT = os.environ['ANSYS_ROOT']
-ANSYS_EXE = os.path.join(ANSYS_ROOT, 'v231', 'ansys', 'bin', 'ansys231')
 
-sys.path.append(SCRATCH_PATH)
+def init_env():
+    home = os.path.expanduser('~')
+    scratch_path = os.path.join(home, 'scratch')
+    sys.path.append(scratch_path)
 
+    ansys_root = os.environ['ANSYS_ROOT']
+    ansys_exe = os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
+    print(f"Setting ANSYS executable path: {ansys_exe}")
+    pymapdl.change_default_ansys_path(ansys_exe)
+
+    return scratch_path
+
+
+# SCRATCH_PATH = init_env()
+SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
 from parametric_solver.solver import BilinearSolver
 
 
-print(f"Ansys executable = {ANSYS_EXE}")
-pymapdl.change_default_ansys_path(ANSYS_EXE)
-
-solver = BilinearSolver(HEMJ_INP)
-solver.add_sample(200e9, 700e6, 70e9)
-solver.solve()
+HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
+print(os.getenv("TEMP"))
+# solver = BilinearSolver(HEMJ_INP)
+# solver.add_sample(200e9, 700e6, 70e9)
+# solver.solve()
