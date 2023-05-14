@@ -4,10 +4,10 @@ import os
 import pkgutil
 
 HOME = os.path.expanduser('~')
-INP_PATH = os.path.join(HOME, 'scratch', 'inp')
-HEMJ_INP = os.path.join(INP_PATH, "hemj_v2.inp")
+SCRATCH_PATH = os.path.join(HOME, 'scratch')
+HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 
-sys.path.append(INP_PATH)
+sys.path.append(SCRATCH_PATH)
 
 from parametric_solver.solver import BilinearSolver
 
