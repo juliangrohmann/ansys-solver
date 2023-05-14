@@ -1,5 +1,6 @@
 import sys
 import os
+import traceback
 from ansys.mapdl import core as pymapdl
 
 
@@ -37,5 +38,9 @@ solver.add_sample(200e9, 700e6, 70e9)
 
 try:
     solver.solve()
-except Exception:
+except Exception as e:
+    print("======== EXCEPTION START =========")
+    traceback.print_exc()
+    print(f"Caught an exception: {e}")
+    print("======== EXCEPTION END =========")
     print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
