@@ -33,7 +33,7 @@ from parametric_solver.solver import BilinearSolver
 
 HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 
-solver = BilinearSolver(HEMJ_INP)
+solver = BilinearSolver(HEMJ_INP, run_location=SCRATCH_PATH, loglevel="INFO")
 solver.add_sample(200e9, 700e6, 70e9)
 
 try:
@@ -44,6 +44,6 @@ except Exception as e:
     print(f"Caught an exception: {e}")
     print("======== EXCEPTION END =========")
     print("======== SCRATCH DIR =========")
-    print_directory_tree(os.path.join(os.path.expanduser('~'), 'scratch'))
+    print_directory_tree(os.path.join(os.path.expanduser('~'), 'scratch', 'output'))
     print("======== LICENSE DIR =========")
     print_directory_tree(os.path.join(os.path.expanduser('~'), '.ansys'))
