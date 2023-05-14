@@ -34,6 +34,6 @@ from parametric_solver.solver import BilinearSolver
 HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
 
-solver = BilinearSolver(HEMJ_INP, run_location=OUTPUR_DIR, loglevel="INFO")
+solver = BilinearSolver(HEMJ_INP, run_location=OUTPUR_DIR, loglevel="INFO", start_instance=False)
 solver.add_sample(200e9, 700e6, 70e9)
 solver.solve(verbose=True)
