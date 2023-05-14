@@ -16,13 +16,12 @@ def init_env():
     return scratch_path
 
 
-# SCRATCH_PATH = init_env()
-SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
+SCRATCH_PATH = init_env()
+# SCRATCH_PATH = r'D:\georgia_tech\diverters\src'
 from parametric_solver.solver import BilinearSolver
 
-
 HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
-print(os.getenv("TEMP"))
-# solver = BilinearSolver(HEMJ_INP)
-# solver.add_sample(200e9, 700e6, 70e9)
-# solver.solve()
+
+solver = BilinearSolver(HEMJ_INP)
+solver.add_sample(200e9, 700e6, 70e9)
+solver.solve()
