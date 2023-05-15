@@ -23,4 +23,4 @@ sleep 60; \
 echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"; \
 cd ~/scratch; \
 source venv/bin/activate; \
-python slurm/compute_node.py; \"
+python slurm/compute_node.py; \"'
