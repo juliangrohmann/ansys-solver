@@ -9,6 +9,7 @@ rm -rf *
 #echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"
 
 module load ansys/2023R1
+export I_MPI_PORT_RANGE=50000:51000
 
 "/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port 50052 -grpc
 
