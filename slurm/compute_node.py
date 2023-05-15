@@ -18,6 +18,7 @@ print(f"ANSYS executable path: {exec_file}")
 # port = 50052 + int(os.environ.get("SLURM_NODEID"))
 port = 50052
 print(f"Port = {port}")
+print(f"Run directory = {RUN_DIR}")
 
 solver = BilinearSolver(
     HEMJ_INP,
