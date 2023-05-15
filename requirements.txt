@@ -1,4 +1,4 @@
-git+https://github.com/juliangrohmann/slurm_pymapdl.git
+ansys-mapdl-core
 numpy
 scipy
 flask
