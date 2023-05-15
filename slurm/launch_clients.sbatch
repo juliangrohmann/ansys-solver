@@ -14,8 +14,6 @@
 
 module load ansys/2023R1
 
-mkdir -p ~/scratch/output/err
-mkdir -p ~/scratch/output/solutions
 cd ~/scratch/output/err
 mkdir -p "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"
 cd "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"
