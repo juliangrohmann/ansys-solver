@@ -37,7 +37,8 @@ class SolverClient:
                 time.sleep(retry_interval)
 
     def run(self):
-        next_sample = self._get_sample()
+        # next_sample = self._get_sample()
+        next_sample = (200e9, 700e6, 50e9)
         while next_sample:
             print(f"Solving for sample {next_sample} ...")
             self._solver.add_sample(*next_sample)
