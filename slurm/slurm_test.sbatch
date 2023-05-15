@@ -25,4 +25,4 @@ cd ~/scratch
 source venv/bin/activate
 srun python slurm/compute_node.py
 
-python slurm/head_node.py
+srun --exclusive python slurm/head_node.py
