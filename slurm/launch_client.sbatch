@@ -19,8 +19,10 @@ mkdir -p ${SLURM_JOB_ID}
 cd ${SLURM_JOB_ID}
 echo ${SLURM_JOB_ID}
 
-#export ANSYS_ALLOWED_HOSTS="127.0.0.1"
-#"/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -port 50052 -grpc
+export ANSYS_ALLOWED_HOSTS="127.0.0.1"
+"/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port 50052 -grpc &
+
+sleep 60
 
 cd ~/scratch
 source venv/bin/activate
