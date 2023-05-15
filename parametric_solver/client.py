@@ -42,6 +42,6 @@ class SolverClient:
         while next_sample:
             print(f"Solving for sample {next_sample} ...")
             self._solver.add_sample(*next_sample)
-            self._solver.solve()
+            self._solver.solve(verbose=True)
             print("Solve completed.")
             next_sample = self._get_sample()
