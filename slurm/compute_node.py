@@ -35,6 +35,7 @@ solver = BilinearSolver(
     exec_file=exec_file,
     run_location=RUN_DIR,
     loglevel="INFO",
+    override=True,
 )
 
 client = SolverClient(SERVER_IP, solver)
