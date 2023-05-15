@@ -8,6 +8,8 @@ rm -rf *
 #sleep 60
 #echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"
 
+module load ansys/2023R1
+
 cd ~/scratch
 source venv/bin/activate
 #python slurm/debug.py

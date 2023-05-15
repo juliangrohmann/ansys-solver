@@ -12,5 +12,4 @@
 #SBATCH --output=%j_out.log
 #SBATCH --error=%j_err.log
 
-module load ansys/2023R1
 srun sh launch_client.sh
