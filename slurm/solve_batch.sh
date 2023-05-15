@@ -5,4 +5,7 @@ rm -rf *
 
 cd ~/scratch/slurm
 sbatch launch_client.sbatch
+sbatch launch_client.sbatch
+sbatch launch_client.sbatch
+sbatch launch_client.sbatch
 python head_node.py
