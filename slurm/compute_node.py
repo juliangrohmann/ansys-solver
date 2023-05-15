@@ -14,12 +14,16 @@ SERVER_IP = '128.61.254.34:41559'
 
 env.init_ansys()
 
+port = 50052 + int(os.environ.get("SLURM_NODEID"))
+print(f"Port = {port}")
+
 solver = BilinearSolver(
     HEMJ_INP,
     write_path=SOLUTION_DIR,
     run_location=RUN_DIR,
     loglevel="INFO",
-    start_instance=False)
+    start_instance=False,
+    port=port)
 
 client = SolverClient(SERVER_IP, solver)
 client.run()

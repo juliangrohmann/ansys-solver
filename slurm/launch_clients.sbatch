@@ -17,11 +17,10 @@ module load ansys/2023R1
 srun bash -c 'cd ~/scratch/output/err; \
 mkdir -p "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"; \
 cd "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"; \
-echo "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"'
-
-srun bash -c '"/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port $((50052+SLURM_NODEID)) -grpc &'
-srun sleep 60
-srun echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"
+echo "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"; \
+"/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port $((50052+SLURM_NODEID)) -grpc & \
+sleep 60; \
+echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"'
 
 cd ~/scratch
 source venv/bin/activate
