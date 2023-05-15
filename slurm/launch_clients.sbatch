@@ -13,4 +13,4 @@
 #SBATCH --error=%j_err.log
 
 module load ansys/2023R1
-srun ./launch_client.sh
+srun sh launch_client.sh
