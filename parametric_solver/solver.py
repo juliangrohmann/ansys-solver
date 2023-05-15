@@ -171,6 +171,6 @@ def _num_to_identifier(num):
             if count == 3:
                 break
 
-    exponent = int(num_str.split("e")[-1])
+    exponent = int(num_str.split("e")[-1]) - 2
 
     return f"{significant_digits}e{exponent}"
