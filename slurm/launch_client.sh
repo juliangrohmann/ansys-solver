@@ -9,7 +9,8 @@ rm -rf *
 #echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"
 
 module load ansys/2023R1
-module load mvapich2/2.3.6-ouywal
+
+export ANSYS_ALLOWED_HOSTS="127.0.0.1"
 
 "/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -port 50052 -grpc
 
