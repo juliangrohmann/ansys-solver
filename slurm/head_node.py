@@ -2,7 +2,6 @@ import numpy as np
 import env
 
 SCRATCH_PATH = env.init_scratch()
-# env.init_root()
 from parametric_solver.server import SolverServer
 
 server = SolverServer()
