@@ -8,7 +8,11 @@ rm -rf *
 #sleep 60
 #echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"
 
+module load gcc/10.3.0-o57x6h
 module load ansys/2023R1
+module load openmpi/4.1.4
+module load intel/20.0.4
+module load mvapich2/2.3.6-ouywal
 
 "/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -port 50052 -grpc
 
