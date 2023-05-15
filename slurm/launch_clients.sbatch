@@ -24,5 +24,4 @@ srun sleep 30
 
 cd ~/scratch
 source venv/bin/activate
-srun python slurm/debug.py
 srun python slurm/compute_node.py

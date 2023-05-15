@@ -2,6 +2,7 @@ import os
 import sys
 import socket
 
+
 def init_scratch():
     home = os.path.expanduser('~')
     scratch_path = os.path.join(home, 'scratch')
