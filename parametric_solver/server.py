@@ -10,7 +10,7 @@ class SolverServer:
         def get_sample():
             if self.samples:
                 sample = self.samples.pop(0)
-                print(f"Serving sample {sample} ...")
+                print(f"Serving sample", ', '.join(['{:.2e}'.format(num) for num in sample]), "...")
                 return jsonify(sample), 200
             return jsonify({"message": "No samples available"}), 404
 
