@@ -9,7 +9,7 @@ from parametric_solver.client import SolverClient
 HEMJ_INP = os.path.join(SCRATCH_PATH, 'inp', 'hemj_v2.inp')
 OUTPUR_DIR = os.path.join(SCRATCH_PATH, 'output')
 SOLUTION_DIR = os.path.join(OUTPUR_DIR, 'solutions')
-RUN_DIR = os.path.join(OUTPUR_DIR, 'err', os.environ.get("SLURM_JOB_ID"), os.environ.get("SLURM_NODEID"), os.environ.get("SLURM_PROCID"))
+RUN_DIR = os.path.join(OUTPUR_DIR, 'err', os.environ.get("SLURM_JOB_ID"))
 SERVER_IP = '128.61.254.34:41559'
 
 exec_file = env.get_ansys_exec_file()
