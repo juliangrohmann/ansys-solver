@@ -12,14 +12,17 @@ SOLUTION_DIR = os.path.join(OUTPUR_DIR, 'solutions')
 RUN_DIR = os.path.join(OUTPUR_DIR, 'err', os.environ.get("SLURM_JOB_ID"), os.environ.get("SLURM_NODEID"), os.environ.get("SLURM_PROCID"))
 SERVER_IP = '128.61.254.34:41559'
 
-env.init_ansys()
+exec_file = env.get_ansys_exec_file()
+print(f"ANSYS executable path: {exec_file}")
 
-port = 50052 + int(os.environ.get("SLURM_NODEID"))
+# port = 50052 + int(os.environ.get("SLURM_NODEID"))
+port = 50052
 print(f"Port = {port}")
 
 solver = BilinearSolver(
     HEMJ_INP,
     write_path=SOLUTION_DIR,
+    exec_file=exec_file,
     run_location=RUN_DIR,
     loglevel="INFO",
     start_instance=False,

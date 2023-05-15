@@ -11,20 +11,15 @@ def init_scratch():
     return scratch_path
 
 
-def init_ansys():
-    from ansys.mapdl import core as pymapdl
-
-    ansys_root = os.environ['ANSYS_ROOT']
-    ansys_exe = os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
-    print(f"Setting ANSYS executable path: {ansys_exe}")
-    pymapdl.change_default_ansys_path(ansys_exe)
-
-
 def init_root():
     root = r'D:\georgia_tech\diverters\src'
     sys.path.append(root)
     return root
 
+
+def get_ansys_exec_file():
+    ansys_root = os.environ['ANSYS_ROOT']
+    return os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
 
 def is_local_port_open(port):
     try:
