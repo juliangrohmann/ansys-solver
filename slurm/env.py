@@ -18,8 +18,9 @@ def init_root():
 
 
 def get_ansys_exec_file():
-    ansys_root = os.environ['ANSYS_ROOT']
-    return os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
+    # ansys_root = os.environ['ANSYS_ROOT']
+    return r'/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231'
+    # return os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
 
 def is_local_port_open(port):
     try:
