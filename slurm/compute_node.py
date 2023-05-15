@@ -20,14 +20,22 @@ port = 50052
 print(f"Port = {port}")
 print(f"Run directory = {RUN_DIR}")
 
+# solver = BilinearSolver(
+#     HEMJ_INP,
+#     write_path=SOLUTION_DIR,
+#     exec_file=exec_file,
+#     run_location=RUN_DIR,
+#     loglevel="INFO",
+#     start_instance=False,
+#     port=port)
+
 solver = BilinearSolver(
     HEMJ_INP,
     write_path=SOLUTION_DIR,
     exec_file=exec_file,
     run_location=RUN_DIR,
     loglevel="INFO",
-    start_instance=False,
-    port=port)
+)
 
 client = SolverClient(SERVER_IP, solver)
 client.run()
