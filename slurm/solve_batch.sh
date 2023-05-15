@@ -4,5 +4,5 @@ cd  ~/scratch/output/err
 rm -rf *
 
 cd ~/scratch/slurm
-sbatch launch_clients.sbatch
+sbatch launch_client.sbatch
 python head_node.py
