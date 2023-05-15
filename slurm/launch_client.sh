@@ -10,7 +10,9 @@ rm -rf *
 
 module load ansys/2023R1
 
-cd ~/scratch
-source venv/bin/activate
+"/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port 50052 -grpc &
+
+#cd ~/scratch
+#source venv/bin/activate
 #python slurm/debug.py
-python slurm/compute_node.py
+#python slurm/compute_node.py
