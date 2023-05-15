@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 
 
 class SolverServer:
@@ -10,6 +10,7 @@ class SolverServer:
         def get_sample():
             if self.samples:
                 sample = self.samples.pop(0)
+                print(f"Serving sample {sample} ...")
                 return jsonify(sample), 200
             return jsonify({"message": "No samples available"}), 404
 
