@@ -19,7 +19,7 @@ mkdir -p "${SLURM_JOB_ID}"
 cd "${SLURM_JOB_ID}"
 "/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port 50052 -grpc &
 
-sleep 30
+sleep 60
 
 cd ~/scratch
 source venv/bin/activate
