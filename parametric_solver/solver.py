@@ -133,6 +133,39 @@ class PowerLawSolver(ParametricSolver):
         mapdl_inst.tbdata(1, yield_strength, exponent)
 
 
+class NodeContext:
+    def __init__(self, inp_file):
+        self._inp_file = inp_file
+        self._components = []
+        self._component_map = {}
+
+    def add_component(self, component):
+        self._components.append(component)
+
+    def run(self):
+        global _mapdl
+
+        if not _mapdl:
+            _mapdl = _init_mapdl()
+
+        _mapdl.clear()
+        _mapdl.input(self._inp_file)
+
+        for component in self._components:
+            print(f"Caching {component} ...")
+            _mapdl.esel("S", "ENAME", component)
+            _mapdl.nsle("S", "ACTIVE")
+            _mapdl.nsle("U", "MID")
+
+            nodes = {}
+            for line in _mapdl.nlist():
+                vals = line.split()[:4]
+                vals = [int(val) for val in vals]
+                nodes[vals[0]] = (vals[1], vals[2], vals[3])
+
+            self._components[component] = nodes
+
+
 def _init_mapdl(**kwargs):
     print("Connecting to APDL ...")
     mapdl_inst = launch_mapdl(**kwargs)
