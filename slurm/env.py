@@ -7,14 +7,14 @@ def init_scratch():
     home = os.path.expanduser('~')
     scratch_path = os.path.join(home, 'scratch')
     sys.path.append(scratch_path)
-
     return scratch_path
 
 
 def init_root():
-    root = r'D:\georgia_tech\diverters\src'
-    sys.path.append(root)
-    return root
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.join(curr_dir, '..')
+    sys.path.append(root_dir)
+    return root_dir
 
 
 def get_ansys_exec_file():

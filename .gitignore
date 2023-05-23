@@ -4,3 +4,4 @@ venv/
 results/
 legacy/
 linearization_lib/
+output/

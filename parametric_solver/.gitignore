@@ -1,4 +1,4 @@
 __pycache__/
 in/
-out/
+../examples/out/
 __init__.py

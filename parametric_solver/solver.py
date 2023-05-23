@@ -3,6 +3,7 @@ import pickle
 import os
 import time
 import sys
+import hashlib
 
 sys.path.append('..')
 from ansys.mapdl.core import launch_mapdl
@@ -62,7 +63,7 @@ class ParametricSolver(abc.ABC):
             i += 1
 
     @abc.abstractmethod
-    def _set_mat_props(self, sample, mat_ids, mapdl_inst):
+    def _setup_solve(self, sample, mat_ids, mapdl_inst):
         pass
 
     @abc.abstractmethod
@@ -77,12 +78,8 @@ class ParametricSolver(abc.ABC):
 
         _mapdl.clear()
         _mapdl.input(inp_path)
-        _mapdl.prep7()
 
-        for mat_id in mat_ids:
-            self._set_mat_props(sample, mat_id, _mapdl)
-
-        _mapdl.finish()
+        self._setup_solve(sample, mat_ids, _mapdl)
 
         _mapdl.slashsolu()
         _mapdl.solve(verbose=verbose)
@@ -103,13 +100,99 @@ class BilinearSolver(ParametricSolver):
                f"y{_num_to_identifier(sample[1])}_" \
                f"t{_num_to_identifier(sample[2])}.pkl"
 
-    def _set_mat_props(self, sample, mat_id, mapdl_inst):
+    def _setup_solve(self, sample, mat_ids, mapdl_inst):
         elastic_mod, yield_strength, tangent_mod = sample
 
-        mapdl_inst.tbdele("PLAS", mat_id)
-        mapdl_inst.mp("EX", mat_id, elastic_mod)
-        mapdl_inst.tb("PLAS", mat_id, "", "", "BISO")
-        mapdl_inst.tbdata(1, yield_strength, tangent_mod)
+        for mat_id in mat_ids:
+            _set_elastic_mod(elastic_mod, mat_id, mapdl_inst)
+            _set_bilinear_plasticity(yield_strength, tangent_mod, mat_id, mapdl_inst)
+
+
+class BilinearDictSolver(ParametricSolver):
+    def __init__(self, inp_file, **kwargs):
+        super().__init__(inp_file, **kwargs)
+
+    def add_sample(self, sample_dict):
+        """
+        Parameters
+        ----------
+        sample_dict: dict
+            Dictionary that specifies the properties of the sample.
+            All keys are optional; to leave a property unchanged from the provided input file, omit the key.
+
+            Possible keys:
+                'elastic_mod': int
+                'yield_strength': int
+                'tangent_mod': int
+                'pressure': list of 2-tuples, for example [(<filename>, <component_name>), ...]
+                'thermal': List of 2-tuples, for example [(<filename>, <component_name>), ...]
+
+            'pressure' -> Pressure loads specified in <filename> applied to <component_name>
+            'thermal' -> Thermal loads specified in <filename> applied to <component_name>,
+
+        Notes
+        -----
+        Extensions should be included in filenames.
+        Filename should be an absolute directory if the file is not in the working directory.
+
+        Example sample dictionary format (omit keys that should not be set):
+
+        sample_dict = {
+            'elastic_mod': 200e9,
+            'yield_strength': 250e6,
+            'tangent_mod': 100e6,
+            'pressure': [
+                ('pressure_file1.out', 'component1'),
+                ('pressure_file2.out', 'component2'),
+                ('pressure_file3.out', 'component3'),
+                ('pressure_file4.out', 'component4'),
+            ]
+            'thermal': [
+                ('thermal_file1.node.cfdtemp', 'component1'),
+                ('thermal_file2.node.cfdtemp', 'component2'),
+            ]
+        }
+        """
+        self.samples.append(sample_dict)
+
+    def _eval_filename(self, sample):
+        filename = ''
+
+        if 'elastic_mod' in sample:
+            filename += f"e{_num_to_identifier(sample['elastic_mod'])}_"
+
+        if 'yield_strength' in sample:
+            filename += f"y{_num_to_identifier(sample['yield_strength'])}_"
+
+        if 'tangent_mod' in sample:
+            filename += f"t{_num_to_identifier(sample['tangent_mod'])}_"
+
+        if 'pressure' in sample:
+            for pressure in sample['pressure']:
+                filename += f"p{_file_to_checksum(pressure[0], digits=6)}_"
+
+        if 'thermal' in sample:
+            for thermal in sample['thermal']:
+                filename += f"p{_file_to_checksum(thermal[0], digits=6)}_"
+
+        filename.rstrip('_')
+        return filename + '.pkl'
+
+    def _setup_solve(self, sample, mat_ids, mapdl_inst):
+        for mat_id in mat_ids:
+            if 'elastic_mod' in sample:
+                _set_elastic_mod(sample['elastic_mod'], mat_id, mapdl_inst)
+
+            if 'yield_strength' in sample and 'tangent_mod' in sample:
+                _set_bilinear_plasticity(sample['yield_strength'], sample['tangent_mod'], mat_id, mapdl_inst)
+
+            if 'pressure' in sample:
+                for pressure in sample['pressure']:
+                    _set_pressure_loads(*pressure, mapdl_inst)
+
+            if 'thermal' in sample:
+                for thermal in sample['thermal']:
+                    _set_thermal_loads(*thermal, mapdl_inst)
 
 
 class PowerLawSolver(ParametricSolver):
@@ -124,13 +207,107 @@ class PowerLawSolver(ParametricSolver):
                f"y{_num_to_identifier(sample[1])}_" \
                f"n{_num_to_identifier(sample[2])}.pkl"
 
-    def _set_mat_props(self, sample, mat_id, mapdl_inst):
+    def _setup_solve(self, sample, mat_ids, mapdl_inst):
         elastic_mod, yield_strength, exponent = sample
 
-        mapdl_inst.tbdele("PLAS", mat_id)
-        mapdl_inst.mp("EX", mat_id, elastic_mod)
-        mapdl_inst.tb("PLAS", mat_id, "", "", "NLISO")
-        mapdl_inst.tbdata(1, yield_strength, exponent)
+        for mat_id in mat_ids:
+            _set_elastic_mod(elastic_mod, mat_id, mapdl_inst)
+            _set_power_law_plasticity(yield_strength, exponent, mat_id, mapdl_inst)
+
+
+def _set_elastic_mod(elastic_mod, mat_id, mapdl_inst):
+    mapdl_inst.prep7()
+
+    mapdl_inst.mp("EX", mat_id, elastic_mod)
+
+    mapdl_inst.finish()
+
+
+def _set_bilinear_plasticity(yield_strength, tangent_mod, mat_id, mapdl_inst):
+    mapdl_inst.prep7()
+
+    mapdl_inst.tbdele("PLAS", mat_id)
+    mapdl_inst.tb("PLAS", mat_id, "", "", "BISO")
+    mapdl_inst.tbdata(1, yield_strength, tangent_mod)
+
+    mapdl_inst.finish()
+
+
+def _set_power_law_plasticity(yield_strength, exponent, mat_id, mapdl_inst):
+    mapdl_inst.prep7()
+
+    mapdl_inst.tbdele("PLAS", mat_id)
+    mapdl_inst.tb("PLAS", mat_id, "", "", "NLISO")
+    mapdl_inst.tbdata(1, yield_strength, exponent)
+
+    mapdl_inst.finish()
+
+
+def _set_pressure_loads(filename, component, mapdl_inst):
+    mapdl_inst.slashmap()
+
+    mapdl_inst.ftype("CSV", 0)
+    mapdl_inst.read(filename, 1, "", 1, 2, 3, 4)
+    mapdl_inst.target(component)
+
+    mapdl_inst.finish()
+
+
+def _set_thermal_loads(filename, component, mapdl_inst):
+    print(os.getcwd())
+    filename = filename.replace('\\', '/')
+    real_filename, ext = os.path.splitext(filename)
+    ext = ext.replace('.', '')
+    print(f"Real filename = {real_filename}")
+
+    mapdl_inst.cmsel("S", component)
+    mapdl_inst.nsle("S", "ACTIVE")
+
+    mapdl_inst.prep7()
+
+    skiplines = 1
+    numlines_str = mapdl_inst.inquire("numlines", "LINES", real_filename, ext)
+    numlines = int(numlines_str.split('.')[0])
+    print(numlines)
+
+    mapdl_inst.dim("node_data", "TABLE", numlines - skiplines)
+    mapdl_inst.tread("node_data", real_filename, ext, skiplines)
+
+    mapdl_inst.dim("extnode", "ARRAY", numlines - skiplines)
+    mapdl_inst.dim("extdat", "ARRAY", numlines - skiplines)
+
+    mapdl_inst.vfun("extnode(1)", "copy", "node_data(1, 0)")
+    mapdl_inst.vfun("extdat(1)", "copy", "node_data(1, 1)")
+
+    apdl_code = """
+    *DO,i,1,numlines - skiplines
+        BF,extnode(i),TEMP,extdat(i) - 273.15
+    *ENDDO
+    """
+
+    mapdl_inst.run(f"skiplines = {skiplines}")
+    mapdl_inst.input_strings(apdl_code)
+
+    # ext = 'cfdtemp'
+    # real_filename = filename.rstrip('.' + ext)
+    # parent_dir = os.path.dirname(_curr_dir())
+    # repl_path = real_filename\
+    #     .replace("\\", "__slash__")\
+    #     .replace("/", "__slash__")\
+    #     .replace(":", "__colon__")\
+    #     .replace(".", "__dot__")
+    #
+    # macro_path = os.path.join(parent_dir, 'macros', 'MITTSN.mac')
+    #
+    # mapdl_inst.cmsel("S", component)
+    # mapdl_inst.nsle("S", "ACTIVE")
+    #
+    # print("Using macro:", macro_path, "with", repl_path)
+    # mapdl_inst.use(macro_path, repl_path, ext)
+
+
+def _curr_dir():
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 class NodeContext:
@@ -207,3 +384,13 @@ def _num_to_identifier(num):
     exponent = int(num_str.split("e")[-1]) - 2
 
     return f"{significant_digits}e{exponent}"
+
+
+def _file_to_checksum(file_path, digits=-1):
+    sha256_hash = hashlib.sha256()
+
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+
+    return sha256_hash.hexdigest()[:digits]
