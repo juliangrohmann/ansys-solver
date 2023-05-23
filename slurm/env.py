@@ -22,6 +22,7 @@ def get_ansys_exec_file():
     return r'/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231'
     # return os.path.join(ansys_root, 'v231', 'ansys', 'bin', 'ansys231')
 
+
 def is_local_port_open(port):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,12 +32,3 @@ def is_local_port_open(port):
         return True
     except (socket.timeout, OSError):
         return False
-
-# srun bash -c 'cd ~/scratch/output/err'
-# srun bash -c 'mkdir -p "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"'
-# srun bash -c 'cd ${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}'
-# srun bash -c 'echo "${SLURM_JOB_ID}/${SLURM_NODEID}/${SLURM_PROCID}"'
-#
-# srun bash -c '"/usr/local/pace-apps/manual/packages/ansys/2023R1/v231/ansys/bin/ansys231" -j file -np 4 -port $((50052+SLURM_NODEID)) -grpc &'
-# srun bash -c 'sleep 60'
-# srun bash -c 'echo "Launched gRPC server on node ${SLURM_NODEID}, process ${SLURM_PROCID}"'

@@ -2,6 +2,7 @@ import os.path
 import sys
 import numpy as np
 
+# Initialize directories
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.join(CURR_DIR, '..')
 sys.path.append(PARENT_DIR)

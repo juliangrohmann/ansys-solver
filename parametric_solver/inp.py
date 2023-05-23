@@ -2,6 +2,14 @@ import os
 
 
 def is_inp_valid(inp_path):
+    """
+    Checks whether an input file is valid for use with a parametric solver.
+
+    Parameters
+    ----------
+    inp_path: str
+    :return:
+    """
     with open(inp_path, 'r') as f:
         ignore = False
 

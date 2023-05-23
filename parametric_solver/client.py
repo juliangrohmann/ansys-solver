@@ -3,7 +3,22 @@ import time
 
 
 class SolverClient:
+    """
+    A web-client that gets samples on-demand from its server counterpart (SolverServer),
+    solves, and stores the solution.
+
+    For use with the SLURM compute cluster.
+    """
     def __init__(self, server_url, solver):
+        """
+        Parameters
+        ----------
+        server_url: str
+            The server's URL (i.e. IP address or hostname).
+
+        solver: <? extends ParametricSolver>
+            Any suitable parametric solver that implements the ParametricSolver base class and will be used for solving.
+        """
         self._server_url = server_url
         self._solver = solver
 
@@ -37,6 +52,21 @@ class SolverClient:
                 time.sleep(retry_interval)
 
     def run(self):
+        """
+        Launches the client.
+
+        Notes
+        -----
+        When the current sample is solved, or when the client is first initialized,
+        it will attempt to get a new sample from the solver.
+
+        Only one sample is retrieved at a time and solved immediately.
+
+        If the server cannot be reached, the client will time out for 10 seconds and re-attempt,
+        up to a maximum of 10 times.
+
+        If the server responds with 404, all samples are solved and the client will terminate.
+        """
         next_sample = self._get_sample()
         while next_sample:
             print(f"Solving for sample {next_sample} ...")

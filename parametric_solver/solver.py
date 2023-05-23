@@ -16,7 +16,30 @@ _mapdl = None
 
 
 class ParametricSolver(abc.ABC):
+    """
+    Base class for parametric solving.
+    Implements PyMAPDL interface.
+    """
     def __init__(self, inp_file, write_path="", **kwargs):
+        """
+        Initializes the solver and processes the input file.
+
+        Parameters
+        ----------
+        inp_file: str
+            The path to the Ansys Mechanical *.input file that will be used as a baseline
+            before any parametric values are modified.
+
+        write_path: str, optional
+            The path at which solutions will be stored, and from which previous solutions are read.
+
+        **kwargs:
+            Keyword arguments to be passed during PyMAPDL instance creation. See PyMAPDL documentation (launch_mapdl).
+
+        Notes:
+            An initial input file in the correct format can be exported from Ansys Mechanical or APDL.
+            The input file will be modified to exclude solving.
+        """
         self._inp_file = inp_file
         self._samples = []
         self._results = {}
@@ -29,13 +52,47 @@ class ParametricSolver(abc.ABC):
 
     @property
     def samples(self):
+        """
+        Accessor to the sample list.
+
+        Returns
+        -------
+        list
+            The list containing all added samples at which a solution is to be obtained, or has already been obtained.
+        """
         return self._samples
 
     @property
     def results(self):
+        """
+        Accessor to the result dictionary.
+
+        Returns
+        -------
+        dict
+            The dictionary containing all obtained results. Keys are sample tuples, values are APDLResult objects.
+        """
         return self._results
 
     def solve(self, read_cache=True, verbose=False):
+        """
+        Solves all added samples and writes the results to the write directory.
+
+        Parameters
+        -------
+        read_cache: bool, optional
+            If True, reads existing result from the write directory when available instead of resolving,
+            otherwise solves the sample again and overwrites the existing result.
+
+        verbose: bool, optional
+            If True, prints additional output for debugging to the console,
+            otherwise only prints minimal output.
+
+        Notes
+        -----
+        This method can also be used to load and access the existing results if they have already been solved
+        at the provided samples and are located in the write directory.
+        """
         start_time = time.time()
         i = 1
         n = len(self._samples)
@@ -89,10 +146,27 @@ class ParametricSolver(abc.ABC):
 
 
 class BilinearSolver(ParametricSolver):
+    """
+    Parametric solver for sampling of elasticity and bilinear plasticity.
+    """
     def __init__(self, inp_file, **kwargs):
         super().__init__(inp_file, **kwargs)
 
     def add_sample(self, elastic_mod, yield_strength, tangent_mod):
+        """
+        Adds a sample to the solver.
+
+        Parameters
+        ----------
+        elastic_mod: int
+            The elastic modulus in the input file's units.
+
+        yield_strength: int
+            The yield strength in the input file's units.
+
+        tangent_mod: int
+            The tangent modulus in the input file's units.
+        """
         self.samples.append((elastic_mod, yield_strength, tangent_mod))
 
     def _eval_filename(self, sample):
@@ -109,11 +183,20 @@ class BilinearSolver(ParametricSolver):
 
 
 class BilinearDictSolver(ParametricSolver):
+    """
+    Parametric solver for sampling of:
+        - Elasticity
+        - Plasticity (Bilinear)
+        - Pressure loads
+        - Thermal loads
+    """
     def __init__(self, inp_file, **kwargs):
         super().__init__(inp_file, **kwargs)
 
     def add_sample(self, sample_dict):
         """
+        Adds a sample to the solver.
+
         Parameters
         ----------
         sample_dict: dict
@@ -121,9 +204,9 @@ class BilinearDictSolver(ParametricSolver):
             All keys are optional; to leave a property unchanged from the provided input file, omit the key.
 
             Possible keys:
-                'elastic_mod': int
-                'yield_strength': int
-                'tangent_mod': int
+                'elastic_mod': int, Elastic modulus in the input file's units
+                'yield_strength': int, Yield strength in the input file's units
+                'tangent_mod': int, Tangent modulus (i.e. strain hardening modulus) in the input file's units
                 'pressure': list of 2-tuples, for example [(<filename>, <component_name>), ...]
                 'thermal': List of 2-tuples, for example [(<filename>, <component_name>), ...]
 
@@ -200,6 +283,26 @@ class PowerLawSolver(ParametricSolver):
         super().__init__(inp_file, **kwargs)
 
     def add_sample(self, elastic_mod, yield_strength, exponent):
+        """
+        Adds a sample to the solver.
+
+        Parameters
+        ----------
+        elastic_mod: int
+            The elastic modulus in the input file's units.
+
+        yield_strength: int
+            The yield strength in the input file's units.
+
+        exponent: float
+            The power law's exponent.
+
+        Notes
+        -----
+        The power law equation used to model plasticity:
+
+        stress = yield_strength * (plastic_strain ** exponent)
+        """
         self.samples.append((elastic_mod, yield_strength, exponent))
 
     def _eval_filename(self, sample):
@@ -311,15 +414,37 @@ def _curr_dir():
 
 
 class NodeContext:
+    """
+    Retrieves and stores the following information relating to the nodes of the model:
+        - The ids of the nodes belonging to each component
+        - The coordinates of each node
+    """
     def __init__(self, inp_file):
+        """
+        Parameters
+        ----------
+        inp_file: str
+            The path to the Ansys Mechanical *.input file from which the nodes will be read.
+        """
         self._inp_file = inp_file
         self._components = []
         self._component_map = {}
 
     def add_component(self, component):
+        """
+        Registers a component name for which to retrieve and store nodal information.
+
+        Parameters
+        ----------
+        component: str
+            The name of the component.
+        """
         self._components.append(component)
 
     def run(self):
+        """
+        Retrieves and stores the nodal information for each registered component name.
+        """
         global _mapdl
 
         if not _mapdl:
