@@ -6,7 +6,7 @@ CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
-from parametric_solver.solver import BilinearDictSolver
+from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample
 
 # Initialize directories
 INP_DIR = os.path.join(PARENT_DIR, 'inp')
@@ -15,7 +15,7 @@ THERM_DIR = os.path.join(INP_DIR, 'thermal')
 OUT_DIR = os.path.join(CURR_DIR, 'out')
 INP_FILE = os.path.join(INP_DIR, 'hemj_v2.inp')
 
-# Initialize dictionary values
+# Initialize sample values
 elastic_mods = np.linspace(1e10, 6e10, 3)
 yield_strengths = np.linspace(4.0e8, 6.5e8, 3)
 tangent_mods = np.linspace(1.0e9, 2.0e9, 3)
@@ -32,18 +32,21 @@ thermal = [
 ]
 
 # Add sample points to solver
-solver = BilinearDictSolver(INP_FILE, write_path=OUT_DIR, loglevel="INFO")
+solver = BilinearThermalSolver(INP_FILE, write_path=OUT_DIR, loglevel="INFO")
 for elastic_mod in elastic_mods:
     for yield_strength in yield_strengths:
         for tangent_mod in tangent_mods:
-            sample_dict = {
-                'elastic_mod': elastic_mod,
-                'yield_strength': yield_strength,
-                'tangent_mod': tangent_mod,
-                'pressure': pressure,
-                'thermal': thermal
-            }
-            solver.add_sample(sample_dict)
+            sample = BilinearThermalSample()
+            sample.elastic_mod = elastic_mod
+            sample.yield_strength = yield_strength
+            sample.tangent_mod = tangent_mod
+
+            for load in pressure:
+                sample.add_pressure_load(load[0], load[1])
+            for load in thermal:
+                sample.add_thermal_load(load[0], load[1])
+
+            solver.add_sample(sample)
 
 # Solve at all sample points
-solver.solve(verbose=True)
+solver.solve(verbose=False)
