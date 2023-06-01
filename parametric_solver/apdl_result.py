@@ -244,6 +244,8 @@ def _linearize(vals, locations, n, averaged=True):
     membrane = APDLIntegrate(vals, locations, n).membrane_tensor(averaged=averaged)[0]
     bending = APDLIntegrate(vals, locations, n).bending_tensor(averaged=averaged)[0]
 
+    print(membrane + bending)
+
     if averaged:
         return membrane + bending
 
@@ -251,7 +253,7 @@ def _linearize(vals, locations, n, averaged=True):
     for i in range(n):
         mem_tensor = np.array([membrane[j][i] for j in range(6)])
         ben_tensor = np.array([bending[j][i] for j in range(6)])
-        tensor = np.array(mem_tensor + ben_tensor)
+        tensor = mem_tensor + ben_tensor
         tensors.append(tensor)
 
     return tensors
@@ -274,15 +276,22 @@ def _distance(pos1, pos2):
 
 
 def von_mises(tensor):
-    if len(tensor.shape) == 1 or tensor.shape[0] == 1 or tensor.shape[1] == 1:
-        num = (tensor[0] - tensor[1]) ** 2 + \
-              (tensor[1] - tensor[2]) ** 2 + \
-              (tensor[2] - tensor[0]) ** 2 + \
-              6 * (tensor[3] ** 2 + tensor[4] ** 2 + tensor[5] ** 2)
-    else:
-        num = (tensor[0][0] - tensor[1][1]) ** 2 + \
-              (tensor[1][1] - tensor[2][2]) ** 2 + \
-              (tensor[2][2] - tensor[0][0]) ** 2 + \
-              6 * (tensor[0][1] ** 2 + tensor[1][2] ** 2 + tensor[2][0] ** 2)
+    num = (tensor[0] - tensor[1]) ** 2 + \
+          (tensor[1] - tensor[2]) ** 2 + \
+          (tensor[2] - tensor[0]) ** 2 + \
+          6 * (tensor[3] ** 2 + tensor[4] ** 2 + tensor[5] ** 2)
 
     return (num / 2) ** 0.5
+
+    # if len(tensor.shape) == 1 or tensor.shape[0] == 1 or tensor.shape[1] == 1:
+    #     num = (tensor[0] - tensor[1]) ** 2 + \
+    #           (tensor[1] - tensor[2]) ** 2 + \
+    #           (tensor[2] - tensor[0]) ** 2 + \
+    #           6 * (tensor[3] ** 2 + tensor[4] ** 2 + tensor[5] ** 2)
+    # else:
+    #     num = (tensor[0][0] - tensor[1][1]) ** 2 + \
+    #           (tensor[1][1] - tensor[2][2]) ** 2 + \
+    #           (tensor[2][2] - tensor[0][0]) ** 2 + \
+    #           6 * (tensor[0][1] ** 2 + tensor[1][2] ** 2 + tensor[2][0] ** 2)
+    #
+    # return (num / 2) ** 0.5
