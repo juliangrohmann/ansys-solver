@@ -6,19 +6,19 @@ CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
-from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample
+from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample, MatProp
 
 # Initialize directories
 INP_DIR = os.path.join(PARENT_DIR, 'inp')
-PRESS_DIR = os.path.join(INP_DIR, 'pressure')
-THERM_DIR = os.path.join(INP_DIR, 'thermal')
+PRESS_DIR = os.path.join(INP_DIR, 'example', 'pressure')
+THERM_DIR = os.path.join(INP_DIR, 'example', 'thermal')
 OUT_DIR = os.path.join(CURR_DIR, 'out')
 INP_FILE = os.path.join(INP_DIR, 'hemj_v2.inp')
 
 # Initialize sample values
-elastic_mods = np.linspace(1e10, 6e10, 3)
-yield_strengths = np.linspace(4.0e8, 6.5e8, 3)
-tangent_mods = np.linspace(1.0e9, 2.0e9, 3)
+elastic_mods = np.linspace(1e4, 6e4, 3)  # MPa
+yield_strengths = np.linspace(400, 650, 3)  # MPa
+tangent_mods = np.linspace(1.0e3, 2.0e3, 3)  # MPa
 pressure = [
     (os.path.join(PRESS_DIR, 'cool-surf1.out'), 'cool_surf1'),
     (os.path.join(PRESS_DIR, 'cool-surf2.out'), 'cool_surf2'),
@@ -37,9 +37,8 @@ for elastic_mod in elastic_mods:
     for yield_strength in yield_strengths:
         for tangent_mod in tangent_mods:
             sample = BilinearThermalSample()
-            sample.elastic_mod = elastic_mod
-            sample.yield_strength = yield_strength
-            sample.tangent_mod = tangent_mod
+            sample.set_property(MatProp.ELASTIC_MODULUS, elastic_mod)
+            sample.plasticity = [yield_strength, tangent_mod]
 
             for load in pressure:
                 sample.add_pressure_load(load[0], load[1])

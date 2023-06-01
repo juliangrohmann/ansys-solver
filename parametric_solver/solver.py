@@ -5,15 +5,15 @@ import time
 import sys
 import hashlib
 import json
+import enum
+import numpy as np
 
-sys.path.append('..')
-from ansys.mapdl.core import launch_mapdl
+PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(PARENT_DIR)
 
 import parametric_solver.inp as inp
 from parametric_solver.apdl_result import APDLResult
-
-
-_mapdl = None
+from apdl_util.util import get_mapdl
 
 
 class ParametricSolver(abc.ABC):
@@ -21,7 +21,7 @@ class ParametricSolver(abc.ABC):
     Base class for parametric solving.
     Implements PyMAPDL interface.
     """
-    def __init__(self, inp_file, write_path="", **kwargs):
+    def __init__(self, write_path="", **kwargs):
         """
         Initializes the solver and processes the input file.
 
@@ -41,15 +41,10 @@ class ParametricSolver(abc.ABC):
             An initial input file in the correct format can be exported from Ansys Mechanical or APDL.
             The input file will be modified to exclude solving.
         """
-        self._inp_file = inp_file
         self._samples = []
         self._results = {}
         self._write_path = write_path
         self._mapdl_kwargs = kwargs
-
-        if not inp.is_inp_valid(inp_file):
-            print("Unprocessed input file. Processing ...")
-            inp.process_invalid_inp(inp_file)
 
     @property
     def samples(self):
@@ -74,6 +69,30 @@ class ParametricSolver(abc.ABC):
             The dictionary containing all obtained results. Keys are sample tuples, values are APDLResult objects.
         """
         return self._results
+
+    def result_from_name(self, name):
+        """
+        Parameters
+        ----------
+        Name of the sample for which to retrieve the result.
+
+        Returns
+        -------
+        `:class:`APDLResult
+            The result that corresponds to the sample with the given name.
+            If the no sample with the given name exists, or if the sample is
+            unsolved, returns None.
+        """
+        target_sample = None
+        for sample in self._samples:
+            if sample.name == name:
+                target_sample = sample
+                break
+
+        if target_sample and target_sample in self._results:
+            return self._results[target_sample]
+
+        return None
 
     def solve(self, read_cache=True, verbose=False):
         """
@@ -105,12 +124,11 @@ class ParametricSolver(abc.ABC):
             filepath = os.path.join(self._write_path, self._eval_filename(sample))
             if read_cache and os.path.exists(filepath):
                 with open(filepath, "rb") as f:
-                    print(f"Caching result at {filepath} ...")
+                    print(f"Loading cached result from {filepath} ...")
                     result = pickle.load(f)
             else:
                 result = self._solve_sample(
                     sample,
-                    self._inp_file,
                     verbose=verbose)
 
                 with open(filepath, "wb") as f:
@@ -128,17 +146,20 @@ class ParametricSolver(abc.ABC):
     def _eval_filename(self, sample):
         pass
 
-    def _solve_sample(self, sample, inp_path, mat_ids=(2, 4, 6), verbose=False):
-        global _mapdl
+    def _solve_sample(self, sample, mat_ids=(2, 4, 6), verbose=False):
+        _mapdl = get_mapdl(**self._mapdl_kwargs)
 
-        if not _mapdl:
-            _mapdl = _init_mapdl(**self._mapdl_kwargs)
+        if not inp.is_inp_valid(sample.input):
+            print(f"Unprocessed input file: {sample.input}")
+            print("Processing ...")
+            inp.process_invalid_inp(sample.input)
 
         _mapdl.clear()
-        _mapdl.input(inp_path)
+        _mapdl.input(sample.input)
 
         self._setup_solve(sample, mat_ids, _mapdl)
 
+        _mapdl.finish()
         _mapdl.slashsolu()
 
         print(f"Starting to solve sample {sample} ...")
@@ -154,8 +175,8 @@ class BilinearSolver(ParametricSolver):
     """
     Parametric solver for sampling of elasticity and bilinear plasticity.
     """
-    def __init__(self, inp_file, **kwargs):
-        super().__init__(inp_file, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def add_sample(self, elastic_mod, yield_strength, tangent_mod):
         """
@@ -183,56 +204,13 @@ class BilinearSolver(ParametricSolver):
         elastic_mod, yield_strength, tangent_mod = sample
 
         for mat_id in mat_ids:
-            _set_elastic_mod(elastic_mod, mat_id, mapdl_inst)
-            _set_bilinear_plasticity(yield_strength, tangent_mod, mat_id, mapdl_inst)
-
-
-class BilinearThermalSolver(ParametricSolver):
-    """
-    Parametric solver for sampling of:
-        - Elasticity
-        - Plasticity (Bilinear)
-        - Pressure loads
-        - Thermal loads
-    """
-    def __init__(self, inp_file, **kwargs):
-        super().__init__(inp_file, **kwargs)
-
-    def add_sample(self, sample):
-        """
-        Adds a sample to the solver.
-
-        Parameters
-        ----------
-        sample: `:class:`BilinearThermalSample
-            Instance of BilinearThermalSample that specifies the properties of the sample.
-            All properties are optional; to leave a property unchanged from the provided input file, omit setting it in the sample.
-        """
-        self.samples.append(sample)
-
-    def _eval_filename(self, sample):
-        return f"{sample}.pkl"
-
-    def _setup_solve(self, sample, mat_ids, mapdl_inst):
-        for mat_id in mat_ids:
-            if sample.elastic_mod:
-                _set_elastic_mod(sample.elastic_mod, mat_id, mapdl_inst)
-
-            if sample.yield_strength and sample.tangent_mod:
-                _set_bilinear_plasticity(sample.yield_strength, sample.tangent_mod, mat_id, mapdl_inst)
-
-        if sample.pressure_loads:
-            for pressure in sample.pressure_loads:
-                _set_pressure_loads(*pressure, mapdl_inst)
-
-        if sample.thermal_loads:
-            for thermal in sample.thermal_loads:
-                _set_thermal_loads(*thermal, mapdl_inst)
+            _set_property_value(elastic_mod, MatProp.ELASTIC_MODULUS, mat_id, mapdl_inst)
+            _set_bilinear_plasticity_values(yield_strength, tangent_mod, mat_id, mapdl_inst)
 
 
 class PowerLawSolver(ParametricSolver):
-    def __init__(self, inp_file, **kwargs):
-        super().__init__(inp_file, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def add_sample(self, elastic_mod, yield_strength, exponent):
         """
@@ -266,16 +244,71 @@ class PowerLawSolver(ParametricSolver):
         elastic_mod, yield_strength, exponent = sample
 
         for mat_id in mat_ids:
-            _set_elastic_mod(elastic_mod, mat_id, mapdl_inst)
-            _set_power_law_plasticity(yield_strength, exponent, mat_id, mapdl_inst)
+            _set_property_value(elastic_mod, MatProp.ELASTIC_MODULUS, mat_id, mapdl_inst)
+            _set_power_law_plasticity_values(yield_strength, exponent, mat_id, mapdl_inst)
+
+
+class BilinearThermalSolver(ParametricSolver):
+    """
+    Parametric solver for sampling of:
+        - Elasticity
+        - Plasticity (Bilinear)
+        - Pressure loads
+        - Thermal loads
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def add_sample(self, sample):
+        """
+        Adds a sample to the solver.
+
+        Parameters
+        ----------
+        sample: `:class:`BilinearThermalSample
+            Instance of BilinearThermalSample that specifies the properties of the sample.
+            All properties are optional; to leave a property unchanged from the provided input file, omit setting it in the sample.
+        """
+        self.samples.append(sample)
+
+    def _eval_filename(self, sample):
+        return f"{sample}.pkl"
+
+    def _setup_solve(self, sample, mat_ids, mapdl_inst):
+        for mat_id in mat_ids:
+            for prop in MatProp:
+                value = sample.get_property(prop)
+                if value is None:
+                    continue
+
+                if isinstance(value, np.ndarray) and value.shape[0] > 1:
+                    _set_temperature_table(value, prop.value, mat_id, mapdl_inst)
+                else:
+                    _set_property_value(value, prop.value, mat_id, mapdl_inst)
+
+            if sample.plasticity is not None:
+                if isinstance(sample.plasticity, np.ndarray) and sample.plasticity.shape[0] > 1:
+                    _set_bilinear_plasticity_table(sample.plasticity, mat_id, mapdl_inst)
+                else:
+                    _set_bilinear_plasticity_values(sample.plasticity[0], sample.plasticity[1], mat_id, mapdl_inst)
+            else:
+                _remove_plasticity(mat_id, mapdl_inst)
+
+        if sample.pressure_loads:
+            for pressure in sample.pressure_loads:
+                _add_pressure_load(*pressure, mapdl_inst)
+
+        if sample.thermal_loads:
+            for thermal in sample.thermal_loads:
+                _add_thermal_load(*thermal, mapdl_inst)
 
 
 class BilinearThermalSample:
     def __init__(self):
         self._name = None
-        self._elastic_mod = None
-        self._yield_strength = None
-        self._tangent_mod = None
+        self._input = None
+        self._plasticity = None
+        self._properties = {}
         self._pressure_loads = []
         self._thermal_loads = []
 
@@ -312,88 +345,104 @@ class BilinearThermalSample:
         self._name = value
 
     @property
-    def elastic_mod(self):
-        """
-        Returns
-        -------
-        int
-            Elastic modulus of the sample.
+    def input(self):
+        return self._input
 
-        Notes
-        -----
-        Units are determined by the input file of the parametric solver to which the sample is added.
-        """
-        return self._elastic_mod
+    @input.setter
+    def input(self, value):
+        self._input = value
 
-    @elastic_mod.setter
-    def elastic_mod(self, value):
+    def get_property(self, mat_prop):
         """
         Parameters
+        ----------
+        mat_prop: `:class:`MatProp
+            The MatProp enum constant that defines the property type to retrieve.
+
+        Returns
         -------
-        value: int
-            Elastic modulus to set in the sample.
+        float or np.array
+            The float value specified for the property, or an (n x 2) array that represents the
+            temperature table of the property. If undefined, returns None.
 
         Notes
         -----
         Units are determined by the input file of the parametric solver to which the sample is added.
         """
-        self._elastic_mod = value
+        if mat_prop.value in self._properties:
+            return self._properties[mat_prop.value]
+        else:
+            return None
+
+    def set_property(self, mat_prop, value):
+        """
+        Parameters
+        ----------
+        mat_prop: `:class:`MatProp
+            The MatProp enum constant that defines the property type to retrieve.
+
+        value: float or np.array
+            The value to assign to the property, or the (n x 2) temperature table
+            if defining temperature dependent behavior.
+
+        Returns
+        -------
+        float or np.array
+            The float value specified for the property, or an (n x 2) array that represents the
+            temperature table of the property. If undefined, returns None.
+
+        Notes
+        -----
+        Units are determined by the input file of the parametric solver to which the sample is added.
+        Set to None to clear a previously set property.
+        """
+        self._properties[mat_prop.value] = value
 
     @property
-    def yield_strength(self):
+    def plasticity(self):
         """
         Returns
         -------
-        int
-            Yield strength of the sample.
+        collection
+            For temperature dependent behavior, returns an (n x 3) np.array in
+            the following format:
+                Column 0: Temperatures
+                Column 1: Yield strengths
+                Column 2: Tangent modulus (strain-hardening modulus)
+
+            Otherwise, returns a (1 x 2) collection in the
+            format (yield_strength, tangent_modulus).
+
+            If undefined, returns None.
 
         Notes
         -----
         Units are determined by the input file of the parametric solver to which the sample is added.
         """
-        return self._yield_strength
+        return self._plasticity
 
-    @yield_strength.setter
-    def yield_strength(self, value):
+    @plasticity.setter
+    def plasticity(self, value):
         """
         Parameters
-        -------
-        value: int
-            Yield strength to set in the sample.
+        ----------
+        value: collection
+            For temperature dependent behavior, a (n x 3) np.array in
+            the following format:
+                Column 0: Temperatures
+                Column 1: Yield strengths
+                Column 2: Tangent modulus (strain-hardening modulus)
+
+            Otherwise, a (1 x 2) collection in the
+            format (yield_strength, tangent_modulus).
+
+            Set to None to clear previously set plasticity values.
 
         Notes
         -----
         Units are determined by the input file of the parametric solver to which the sample is added.
         """
-        self._yield_strength = value
-
-    @property
-    def tangent_mod(self):
-        """
-        Returns
-        -------
-        int
-            Tangent modulus (strain hardening modulus) of the sample.
-
-        Notes
-        -----
-        Units are determined by the input file of the parametric solver to which the sample is added.
-        """
-        return self._tangent_mod
-
-    @tangent_mod.setter
-    def tangent_mod(self, value):
-        """
-        Parameters
-        -------
-        value: int
-            Tangent modulus (strain hardening modulus) to set in the sample.
-
-        Notes
-        -----
-        Units are determined by the input file of the parametric solver to which the sample is added.
-        """
-        self._tangent_mod = value
+        self._plasticity = value
 
     @property
     def pressure_loads(self):
@@ -422,11 +471,7 @@ class BilinearThermalSample:
 
     def clear_pressure_loads(self):
         """
-        Returns
-        -------
-        list of tuple
-            A list of 2-tuples where each tuple represents a thermal load applied to a component in
-            the format (thermal_filepath, component_name).
+        Removes all pressure loads from the sample.
         """
         self._pressure_loads.clear()
 
@@ -435,9 +480,9 @@ class BilinearThermalSample:
         """
         Returns
         -------
-        list of tuple
-            A list of 2-tuples where each tuple represents a pressure load applied to a component in
-            the format (pressure_filepath, component_name).
+        list of lists
+            A list of lists where each inner list represents a pressure load applied to a component.
+            The general format is [[pressure_filepath, component_name], [...]].
         """
         return self._thermal_loads
 
@@ -453,7 +498,7 @@ class BilinearThermalSample:
             Name of the component to which the load is applied. Provided component name needs to be defined
             in the input file of the parametric solver to which the sample is added.
         """
-        self._thermal_loads.append((filepath, component))
+        self._thermal_loads.append([filepath, component])
 
     def clear_thermal_loads(self):
         """
@@ -463,24 +508,28 @@ class BilinearThermalSample:
 
     def to_json(self):
         data = {
-            "elastic_mod": self._elastic_mod,
-            "yield_strength": self._yield_strength,
-            "tangent_mod": self._tangent_mod,
-            "pressure_loads": self._pressure_loads,
-            "thermal_loads": self._thermal_loads
+            '_name': self._name,
+            '_plasticity': np.array(self._plasticity).tolist() if self._plasticity is not None else None,
+            '_properties': {key: np.array(value).tolist() if isinstance(value, (list, tuple, np.ndarray)) else value
+                            for key, value in self._properties.items()},
+            '_pressure_loads': self._pressure_loads,
+            '_thermal_loads': self._thermal_loads
         }
+
         return json.dumps(data)
 
     @classmethod
     def from_json(cls, json_str):
         data = json.loads(json_str)
-        sample = cls()
-        sample._elastic_mod = data.get("elastic_mod")
-        sample._yield_strength = data.get("yield_strength")
-        sample._tangent_mod = data.get("tangent_mod")
-        sample._pressure_loads = data.get("pressure_loads", [])
-        sample._thermal_loads = data.get("thermal_loads", [])
-        return sample
+
+        instance = cls()
+        instance._name = data['_name']
+        instance._plasticity = np.array(data['_plasticity']) if data['_plasticity'] is not None else None
+        instance._properties = {key: np.array(value) if isinstance(value, list) else value for key, value in data['_properties'].items()}
+        instance._pressure_loads = data['_pressure_loads']
+        instance._thermal_loads = data['_thermal_loads']
+
+        return instance
 
     def __hash__(self):
         input_str = self.__str__()
@@ -496,53 +545,88 @@ class BilinearThermalSample:
         if self._name:
             return self._name
 
-        sample_name = ""
-        if self._elastic_mod:
-            sample_name += f"e{_num_to_identifier(self._elastic_mod)}_"
+        input_str = ""
 
-        if self._yield_strength:
-            sample_name += f"e{_num_to_identifier(self._yield_strength)}_"
+        for prop in MatProp:
+            if self.get_property(prop) is not None:
+                input_str += str(self.get_property(prop))
 
-        if self._tangent_mod:
-            sample_name += f"e{_num_to_identifier(self._tangent_mod)}_"
+        if self.plasticity is not None:
+            input_str += str(self.plasticity)
 
         if self._pressure_loads:
             for load in self._pressure_loads:
-                sample_name += f"p{_file_to_checksum(load[0], digits=6)}_c{load[1]}_"
+                input_str += f"p{_file_to_checksum(load[0], digits=6)}_c{load[1]}_"
 
         if self._thermal_loads:
             for load in self._thermal_loads:
-                sample_name += f"t{_file_to_checksum(load[0], digits=6)}_c{load[1]}_"
+                input_str += f"t{_file_to_checksum(load[0], digits=6)}_c{load[1]}_"
 
-        sample_name = sample_name.rstrip('_')
-        return sample_name
+        hash_obj = hashlib.sha256()
+        hash_obj.update(input_str.encode())
+        unique_hash = hash_obj.hexdigest()
+        return unique_hash
 
 
-def _set_elastic_mod(elastic_mod, mat_id, mapdl_inst):
-    print(f"Setting elastic modulus for material id {mat_id} to {elastic_mod} ...")
+class MatProp(enum.Enum):
+    DENSITY = 'DENS'
+    POISSONS_RATIO = 'NUXY'
+    ELASTIC_MODULUS = 'EX'
+    THERMAL_EXPANSION = 'CTEX'
+    THERMAL_CONDUCTIVITY = 'KXX'
+
+
+def _set_property_value(value, mat_prop, mat_id, mapdl_inst):
+    print(f"Setting property {mat_prop} for material id {mat_id} ...")
+    print(f"Value: {value}")
+
+    mapdl_inst.prep7()
+    mapdl_inst.mp(mat_prop, mat_id, value)
+    mapdl_inst.finish()
+
+
+def _set_temperature_table(table, mat_prop, mat_id, mapdl_inst):
+    print(f"Setting temperature table property {mat_prop} for material id {mat_id} ...")
+    print("Table:")
+    print(table)
 
     mapdl_inst.prep7()
 
-    mapdl_inst.mp("EX", mat_id, elastic_mod)
+    mapdl_inst.mptemp()
+    for i, temp in enumerate(table[:, 0]):
+        print(f"Adding table temperature: {i + 1}, {temp}")
+        mapdl_inst.mptemp(i + 1, temp)
+    for i, value in enumerate(table[:, 1]):
+        print(f"Adding table {mat_prop} value: {i + 1}, {value}")
+        mapdl_inst.mpdata(mat_prop, mat_id, i + 1, value)
 
     mapdl_inst.finish()
 
 
-def _set_bilinear_plasticity(yield_strength, tangent_mod, mat_id, mapdl_inst):
-    print(f"Setting bilinear plasticity for material id {mat_id}:")
-    print(f"Yield strength = {yield_strength}")
-    print(f"Tangent modulus = {tangent_mod}")
+def _set_bilinear_plasticity_values(yield_strength, tangent_mod, mat_id, mapdl_inst):
+    _set_bilinear_plasticity_table(np.array([[22, yield_strength, tangent_mod]]), mat_id, mapdl_inst)
+
+
+def _set_bilinear_plasticity_table(table, mat_id, mapdl_inst):
+    print(f"Setting bilinear plasticity for material id {mat_id} ...")
+    print("Table:")
+    print(table)
 
     mapdl_inst.prep7()
+
+    n = table.shape[0]
 
     mapdl_inst.tbdele("PLAS", mat_id)
-    mapdl_inst.tb("PLAS", mat_id, "", "", "BISO")
-    mapdl_inst.tbdata(1, yield_strength, tangent_mod)
+    mapdl_inst.tb("PLAS", mat_id, n, "", "BISO")
+
+    for i in range(n):
+        mapdl_inst.tbtemp(table[i, 0])
+        mapdl_inst.tbdata(1, table[i, 1], table[i, 2])
 
     mapdl_inst.finish()
 
 
-def _set_power_law_plasticity(yield_strength, exponent, mat_id, mapdl_inst):
+def _set_power_law_plasticity_values(yield_strength, exponent, mat_id, mapdl_inst):
     print(f"Setting power law plasticity for material id {mat_id}:")
     print(f"Yield strength = {yield_strength}")
     print(f"Exponent = {exponent}")
@@ -556,7 +640,14 @@ def _set_power_law_plasticity(yield_strength, exponent, mat_id, mapdl_inst):
     mapdl_inst.finish()
 
 
-def _set_pressure_loads(filename, component, mapdl_inst):
+def _remove_plasticity(mat_id, mapdl_inst):
+    print(f"Removing plasticity for material id {mat_id} ...")
+    mapdl_inst.prep7()
+    mapdl_inst.tbdele("PLAS", mat_id)
+    mapdl_inst.finish()
+
+
+def _add_pressure_load(filename, component, mapdl_inst):
     print(f"Applying pressure load at {filename} to {component} ...")
 
     mapdl_inst.slashmap()
@@ -568,7 +659,7 @@ def _set_pressure_loads(filename, component, mapdl_inst):
     mapdl_inst.finish()
 
 
-def _set_thermal_loads(filename, component, mapdl_inst):
+def _add_thermal_load(filename, component, mapdl_inst):
     print(f"Applying thermal load at {filename} to {component} ...")
 
     print(f"Working dir = {os.getcwd()}")
@@ -585,6 +676,7 @@ def _set_thermal_loads(filename, component, mapdl_inst):
     skiplines = 1
     numlines_str = mapdl_inst.inquire("numlines", "LINES", real_filename, ext)
     numlines = int(numlines_str.split('.')[0])
+    print(f"numlines_str = {numlines_str}, numlines = {numlines}")
 
     mapdl_inst.dim("node_data", "TABLE", numlines - skiplines)
     mapdl_inst.tread("node_data", real_filename, ext, skiplines)
@@ -642,14 +734,17 @@ class NodeContext:
         """
         self._components.append(component)
 
+    def nodes(self, component):
+        return self._component_map[component].keys()
+
+    def location_map(self, component):
+        return self._component_map[component]
+
     def run(self):
         """
         Retrieves and stores the nodal information for each registered component name.
         """
-        global _mapdl
-
-        if not _mapdl:
-            _mapdl = _init_mapdl()
+        _mapdl = get_mapdl()
 
         _mapdl.clear()
         _mapdl.input(self._inp_file)
@@ -666,14 +761,7 @@ class NodeContext:
                 vals = [int(val) for val in vals]
                 nodes[vals[0]] = (vals[1], vals[2], vals[3])
 
-            self._components[component] = nodes
-
-
-def _init_mapdl(**kwargs):
-    print("Connecting to APDL ...")
-    mapdl_inst = launch_mapdl(**kwargs)
-    print("Connected.")
-    return mapdl_inst
+            self._component_map[component] = nodes
 
 
 def _eval_remaining_time(start_time, completed, remaining):

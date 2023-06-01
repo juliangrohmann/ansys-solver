@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-from matprops import MatProps
+from materials.matprops import MatProps
 
 
 TEMPS = [22, 80, 180, 320, 450, 550, 660, 760, 870]

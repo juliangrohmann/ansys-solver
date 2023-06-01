@@ -38,7 +38,12 @@ class APDLResult:
 
         stress_raw = result.nodal_stress(i)
         elastic_strain_raw = result.nodal_elastic_strain(i)
-        plastic_strain_raw = result.nodal_plastic_strain(i)
+
+        try:
+            plastic_strain_raw = result.nodal_plastic_strain(i)
+        except ValueError:
+            print("No plastic strain data available!")
+            plastic_strain_raw = None
 
         for data in zip(stress_raw[0], stress_raw[1]):
             self.stress[data[0]] = {
@@ -59,16 +64,18 @@ class APDLResult:
                 "XZ": data[1][5],
                 "EQV": data[1][6]
             }
-        for data in zip(plastic_strain_raw[0], plastic_strain_raw[1]):
-            self.plastic_strain[data[0]] = {
-                "X": data[1][0],
-                "Y": data[1][1],
-                "Z": data[1][2],
-                "XY": data[1][3],
-                "YZ": data[1][4],
-                "XZ": data[1][5],
-                "EQV": data[1][6]
-            }
+
+        if plastic_strain_raw:
+            for data in zip(plastic_strain_raw[0], plastic_strain_raw[1]):
+                self.plastic_strain[data[0]] = {
+                    "X": data[1][0],
+                    "Y": data[1][1],
+                    "Z": data[1][2],
+                    "XY": data[1][3],
+                    "YZ": data[1][4],
+                    "XZ": data[1][5],
+                    "EQV": data[1][6]
+                }
 
     def eqv_stress(self, node):
         """
@@ -154,7 +161,8 @@ class APDLResult:
         float
             The total strain at the given node.
         """
-        return self.elastic_strain[node]["EQV"] + self.plastic_strain[node]["EQV"]
+        plastic_strain = self.plastic_strain[node]["EQV"] if node in self.plastic_strain else 0
+        return self.elastic_strain[node]["EQV"] + plastic_strain
 
     def strain_tensor(self, node):
         """
@@ -171,9 +179,14 @@ class APDLResult:
             A 1x6 array holding the components of the strain tensor in the following order:
             [xx, yy, zz, xy, yz, xz]
         """
+
         elastic = np.array(_flatten_tensor(_map_to_tensor(self.elastic_strain, node)))
-        plastic = np.array(_flatten_tensor(_map_to_tensor(self.plastic_strain, node)))
-        return elastic + plastic
+
+        if node not in self.plastic_strain:
+            return elastic
+        else:
+            plastic = np.array(_flatten_tensor(_map_to_tensor(self.plastic_strain, node)))
+            return elastic + plastic
 
     def linearized_strain_tensor(self, nodes, locations, averaged=True):
         """
