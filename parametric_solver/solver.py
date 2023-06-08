@@ -669,7 +669,7 @@ def _add_thermal_load(filename, component, mapdl_inst):
     print(f"Real filename = {real_filename}")
 
     mapdl_inst.cmsel("S", component)
-    mapdl_inst.nsle("S", "ACTIVE")
+    mapdl_inst.nsle("R", "ACTIVE")
 
     mapdl_inst.prep7()
 
@@ -723,7 +723,7 @@ class NodeContext:
         self._components = []
         self._component_map = {}
 
-    def add_component(self, component):
+    def add_component(self, component, inactive=True, mid=False):
         """
         Registers a component name for which to retrieve and store nodal information.
 
@@ -731,14 +731,36 @@ class NodeContext:
         ----------
         component: str
             The name of the component.
+
+        inactive: bool
+            Whether to store inactive nodes
+
+        mid: bool
+            Whether to store mid-nodes
         """
-        self._components.append(component)
+        self._components.append((component, inactive, mid))
 
     def nodes(self, component):
-        return self._component_map[component].keys()
+        return list(self._component_map[component].keys())
 
     def location_map(self, component):
         return self._component_map[component]
+
+    def write(self, component, path, mult=None):
+        out = ""
+        locs = self.location_map(component)
+
+        for node in locs.keys():
+            vals = locs[node]
+
+            if mult is not None:
+                vals = [val * mult for val in vals]
+
+            str_locs = [str(loc) for loc in vals]
+            out += ','.join([str(node), *str_locs]) + '\n'
+
+        with open(path, 'w') as f:
+            f.write(out)
 
     def run(self):
         """
@@ -749,16 +771,32 @@ class NodeContext:
         _mapdl.clear()
         _mapdl.input(self._inp_file)
 
-        for component in self._components:
+        for component, inactive, mid in self._components:
             print(f"Caching {component} ...")
-            _mapdl.esel("S", "ENAME", component)
-            _mapdl.nsle("S", "ACTIVE")
-            _mapdl.nsle("U", "MID")
+
+            if component.lower() == 'all':
+                _mapdl.esel("ALL")
+            else:
+                _mapdl.cmsel("S", component)
+
+            if not inactive:
+                _mapdl.nsle("R", "ACTIVE")
+
+            if not mid:
+                _mapdl.nsle("U", "MID")
 
             nodes = {}
-            for line in _mapdl.nlist():
+            node_list = _mapdl.nlist()
+            for line in node_list.split('\n'):
                 vals = line.split()[:4]
-                vals = [int(val) for val in vals]
+                if len(vals) < 4:
+                    continue
+
+                try:
+                    vals = (int(vals[0]), float(vals[1]), float(vals[2]), float(vals[3]))
+                except ValueError:
+                    continue
+
                 nodes[vals[0]] = (vals[1], vals[2], vals[3])
 
             self._component_map[component] = nodes

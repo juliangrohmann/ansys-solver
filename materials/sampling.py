@@ -29,10 +29,10 @@ def set_structural(sample, sample_material, plastic):
 
 def w_3re_structural(sample, plastic):
     elastic_mod_table = np.array([
-        [500, 2.266e4],  # MPa
-        [700, 2.758e4],
-        [900, 1.964e4],
-        [1100, 1.706e4]
+        [500, 2.266e6],  # MPa
+        [700, 2.758e6],
+        [900, 1.964e6],
+        [1100, 1.706e6]
     ])
     plasticity_table = np.array([
         [500, 6.708e2, 2.545e1],  # MPa
@@ -69,10 +69,10 @@ def w_3re_structural(sample, plastic):
 
 def w_structural(sample, plastic):
     elastic_mod_table = np.array([
-        [500, 1.603e4],  # MPa
-        [700, 1.784e4],
-        [900, 1.667e4],
-        [1100, 1.478e4]
+        [500, 1.603e6],  # MPa
+        [700, 1.784e6],
+        [900, 1.667e6],
+        [1100, 1.478e6]
     ])
     plasticity_table = np.array([
         [500, 5.643e2, 1.828e1],  # MPa
@@ -115,10 +115,10 @@ def wl10_structural(sample):
         [1500, 1.89e-8]
     ])
     elastic_mod_table = np.array([
-        [500, 1.603e4],  # MPa
-        [700, 1.784e4],
-        [900, 1.667e4],
-        [1100, 1.478e4]
+        [500, 3.98e5],  # MPa
+        [700, 3.9e5],
+        [900, 3.68e5],
+        [1100, 3.33e5]
     ])
     thermal_expansion_table = np.array([
         [20, 4.5918e-6],

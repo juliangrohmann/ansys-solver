@@ -1,7 +1,8 @@
 import math
 import numpy as np
+import pandas as pd
 
-from parametric_solver.linearization import APDLIntegrate
+from linearization.linearization import APDLIntegrate
 
 
 class APDLResult:
@@ -65,7 +66,7 @@ class APDLResult:
                 "EQV": data[1][6]
             }
 
-        if plastic_strain_raw:
+        if plastic_strain_raw is not None:
             for data in zip(plastic_strain_raw[0], plastic_strain_raw[1]):
                 self.plastic_strain[data[0]] = {
                     "X": data[1][0],
@@ -146,6 +147,14 @@ class APDLResult:
         """
         stress = np.array([self.stress_tensor(node) for node in nodes])
         return _linearize(stress, locations, len(nodes), averaged=averaged)
+
+    def membrane_stress_tensor(self, nodes, locations, averaged=True):
+        stress = np.array([self.stress_tensor(node) for node in nodes])
+        return _membrane(stress, locations, len(nodes), averaged=averaged)
+
+    def bending_stress_tensor(self, nodes, locations, averaged=True):
+        stress = np.array([self.stress_tensor(node) for node in nodes])
+        return _bending(stress, locations, len(nodes), averaged=averaged)
 
     def total_strain(self, node):
         """
@@ -239,12 +248,30 @@ class APDLResult:
         """
         return [node for node in self.stress if not math.isnan(self.stress[node]["X"])]
 
+    def stress_dataframe(self):
+        return self._dict_to_dataframe(self.stress)
+
+    def strain_dataframe(self):
+        strain_df = self._dict_to_dataframe(self.elastic_strain)
+
+        if self.plastic_strain:
+            strain_df = strain_df.add(self._dict_to_dataframe(self.plastic_strain))
+
+        return strain_df
+
+    def _dict_to_dataframe(self, data):
+        rows = []
+
+        for node in self.valid_nodes():
+            value = data[node]
+            rows.append(pd.Series([value["X"], value["Y"], value["Z"], value["XY"], value["YZ"], value["XZ"]], name=node))
+
+        return pd.DataFrame(rows)
+
 
 def _linearize(vals, locations, n, averaged=True):
-    membrane = APDLIntegrate(vals, locations, n).membrane_tensor(averaged=averaged)[0]
-    bending = APDLIntegrate(vals, locations, n).bending_tensor(averaged=averaged)[0]
-
-    print(membrane + bending)
+    membrane = _membrane(vals, locations, n, averaged=averaged)
+    bending = _bending(vals, locations, n, averaged=True)
 
     if averaged:
         return membrane + bending
@@ -257,6 +284,14 @@ def _linearize(vals, locations, n, averaged=True):
         tensors.append(tensor)
 
     return tensors
+
+
+def _membrane(vals, locations, n, averaged=True):
+    return APDLIntegrate(vals, locations, n).membrane_tensor(averaged=averaged)[0]
+
+
+def _bending(vals, locations, n, averaged=True):
+    return APDLIntegrate(vals, locations, n).bending_tensor(averaged=averaged)[0]
 
 
 def _flatten_tensor(tensor):
