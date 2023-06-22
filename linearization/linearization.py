@@ -34,14 +34,43 @@ def principal_stresses(tens: np.ndarray) -> np.ndarray:
     return np.linalg.eigvalsh(mat.swapaxes(1, -1)).swapaxes(-2, -1).squeeze()
 
 
-def von_mises(stress: np.ndarray):
+def von_mises(stress: np.ndarray, strain=False):
     """
     compute von-mises stresses
     """
-    if stress.shape[1] == 3:
+
+    if strain:
+        return von_mises_strain(stress)
+    elif stress.shape[1] == 3:
         return _von_mises_from_primary(stress)
     else:
         return _von_mises_from_full(stress)
+
+
+# def von_mises_strain(strain: np.ndarray):
+#     """
+#     compute von-mises strains
+#     """
+#     return (np.sqrt(2) / 3) * \
+#                  np.sqrt((np.power(strain[:, 0, ...] - strain[:, 1, ...], 2.0) +
+#                           np.power(strain[:, 1, ...] - strain[:, 2, ...], 2.0) +
+#                           np.power(strain[:, 2, ...] - strain[:, 0, ...], 2.0) +
+#                           6 * (np.power(strain[:, 3, ...], 2.0) +
+#                                  np.power(strain[:, 4, ...], 2.0) +
+#                                  np.power(strain[:, 5, ...], 2.0))))
+
+
+def von_mises_strain(strain: np.ndarray):
+    """
+    compute von-mises strains
+    """
+    return (1 / (np.sqrt(2) * 1.28)) * \
+                 np.sqrt((np.power(strain[:, 0, ...] - strain[:, 1, ...], 2.0) +
+                          np.power(strain[:, 1, ...] - strain[:, 2, ...], 2.0) +
+                          np.power(strain[:, 2, ...] - strain[:, 0, ...], 2.0) +
+                          1.5 * (np.power(strain[:, 3, ...], 2.0) +
+                                 np.power(strain[:, 4, ...], 2.0) +
+                                 np.power(strain[:, 5, ...], 2.0))))
 
 
 def _von_mises_from_primary(stress: np.ndarray):
@@ -60,7 +89,8 @@ def _von_mises_from_full(stress: np.ndarray):
     return np.sqrt(0.5 * (np.power(stress[:, 0, ...] - stress[:, 1, ...], 2.0) +
                           np.power(stress[:, 1, ...] - stress[:, 2, ...], 2.0) +
                           np.power(stress[:, 2, ...] - stress[:, 0, ...], 2.0) +
-                          6 * (np.power(stress[:, 3, ...], 2.0) + np.power(stress[:, 4, ...], 2.0) +
+                          6 * (np.power(stress[:, 3, ...], 2.0) +
+                               np.power(stress[:, 4, ...], 2.0) +
                                np.power(stress[:, 5, ...], 2.0))))
 
 
@@ -195,26 +225,26 @@ class APDLIntegrate:
         else:
             return pt
 
-    def membrane_vm(self, averaged=True) -> np.ndarray:
+    def membrane_vm(self, averaged=True, strain=False) -> np.ndarray:
         """
         convinience function for computing the von-mises membrane
         stresses
         """
         mt = self.membrane_tensor(averaged=False)
-        vm = von_mises(mt)
+        vm = von_mises(mt, strain=strain)
 
         if averaged:
             return vm.mean(axis=-1)
         else:
             return vm
 
-    def bending_vm(self, averaged=True) -> np.ndarray:
+    def bending_vm(self, averaged=True, strain=False) -> np.ndarray:
         """
         convinience function for computing the von-mises bending
         stresses
         """
         bt = self.bending_tensor(averaged=False)
-        vm = von_mises(bt)
+        vm = von_mises(bt, strain=strain)
 
         if averaged:
             return vm[:, 0]

@@ -62,7 +62,8 @@ def linearize_stresses(write_path: pathlib.PurePath,
                        loc2: pd.DataFrame,
                        node_sol: pd.DataFrame,
                        all_locs: str,
-                       npoints: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                       npoints: int,
+                       strain) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Linearize stress fields according to the guidelines provided in ASME
     code/ITER SDC document
@@ -111,8 +112,8 @@ def linearize_stresses(write_path: pathlib.PurePath,
                                        scl_points)
 
     apdl_int = APDLIntegrate(scl_sol, scl_points, npoints)
-    membrane = apdl_int.membrane_vm(averaged=True)
-    bending = apdl_int.bending_vm(averaged=True)
+    membrane = apdl_int.membrane_vm(averaged=True, strain=strain)
+    bending = apdl_int.bending_vm(averaged=True, strain=strain)
     peak = apdl_int.peak_vm(averaged=True)
     principal = apdl_int.linearized_principal_stress(averaged=True)
     triaxility_factor = apdl_int.triaxiality_factor(averaged=True)
@@ -133,7 +134,7 @@ def linearize_stresses(write_path: pathlib.PurePath,
     }
 
 
-def linearize_surface(top_surface_path, bottom_surface_path, solution, all_locs_path, write_path, npoints=47):
+def linearize_surface(top_surface_path, bottom_surface_path, solution, all_locs_path, write_path, strain, npoints=47):
     platform = str(sys.platform)
     if platform == 'unix' or platform == 'posix' or platform == 'linux':
         _path = pathlib.PosixPath
@@ -143,4 +144,4 @@ def linearize_surface(top_surface_path, bottom_surface_path, solution, all_locs_
     write_path = None if write_path is None else _path(write_path)
 
     loc1, loc2 = pair_nodes(write_path, top_surface_path, bottom_surface_path)
-    return linearize_stresses(write_path, loc1, loc2, solution, all_locs_path, npoints)
+    return linearize_stresses(write_path, loc1, loc2, solution, all_locs_path, npoints, strain)

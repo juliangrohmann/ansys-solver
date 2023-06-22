@@ -275,32 +275,33 @@ class BilinearThermalSolver(ParametricSolver):
         return f"{sample}.pkl"
 
     def _setup_solve(self, sample, mat_ids, mapdl_inst):
-        for mat_id in mat_ids:
-            for prop in MatProp:
-                value = sample.get_property(prop)
-                if value is None:
-                    continue
-
-                if isinstance(value, np.ndarray) and value.shape[0] > 1:
-                    _set_temperature_table(value, prop.value, mat_id, mapdl_inst)
-                else:
-                    _set_property_value(value, prop.value, mat_id, mapdl_inst)
-
-            if sample.plasticity is not None:
-                if isinstance(sample.plasticity, np.ndarray) and sample.plasticity.shape[0] > 1:
-                    _set_bilinear_plasticity_table(sample.plasticity, mat_id, mapdl_inst)
-                else:
-                    _set_bilinear_plasticity_values(sample.plasticity[0], sample.plasticity[1], mat_id, mapdl_inst)
-            else:
-                _remove_plasticity(mat_id, mapdl_inst)
-
-        if sample.pressure_loads:
-            for pressure in sample.pressure_loads:
-                _add_pressure_load(*pressure, mapdl_inst)
-
-        if sample.thermal_loads:
-            for thermal in sample.thermal_loads:
-                _add_thermal_load(*thermal, mapdl_inst)
+        # for mat_id in mat_ids:
+        #     for prop in MatProp:
+        #         value = sample.get_property(prop)
+        #         if value is None:
+        #             continue
+        #
+        #         if isinstance(value, np.ndarray) and value.shape[0] > 1:
+        #             _set_temperature_table(value, prop.value, mat_id, mapdl_inst)
+        #         else:
+        #             _set_property_value(value, prop.value, mat_id, mapdl_inst)
+        #
+        #     if sample.plasticity is not None:
+        #         if isinstance(sample.plasticity, np.ndarray) and sample.plasticity.shape[0] > 1:
+        #             _set_bilinear_plasticity_table(sample.plasticity, mat_id, mapdl_inst)
+        #         else:
+        #             _set_bilinear_plasticity_values(sample.plasticity[0], sample.plasticity[1], mat_id, mapdl_inst)
+        #     else:
+        #         _remove_plasticity(mat_id, mapdl_inst)
+        #
+        # if sample.pressure_loads:
+        #     for pressure in sample.pressure_loads:
+        #         _add_pressure_load(*pressure, mapdl_inst)
+        #
+        # if sample.thermal_loads:
+        #     for thermal in sample.thermal_loads:
+        #         _add_thermal_load(*thermal, mapdl_inst)
+        pass
 
 
 class BilinearThermalSample:

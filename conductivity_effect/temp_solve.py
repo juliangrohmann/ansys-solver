@@ -5,8 +5,8 @@ CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
-import materials.sampling as sampling
-from materials.sampling import SampleMaterial
+import materials.presets as sampling
+from materials.presets import SampleMaterial
 from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample, NodeContext
 
 HEAT_LOADS = ['low', 'nominal', 'high']

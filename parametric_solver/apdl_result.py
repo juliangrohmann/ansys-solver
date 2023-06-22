@@ -255,7 +255,8 @@ class APDLResult:
         strain_df = self._dict_to_dataframe(self.elastic_strain)
 
         if self.plastic_strain:
-            strain_df = strain_df.add(self._dict_to_dataframe(self.plastic_strain))
+            plastic_df = self._dict_to_dataframe(self.plastic_strain)
+            strain_df = strain_df.add(plastic_df)
 
         return strain_df
 
@@ -264,7 +265,10 @@ class APDLResult:
 
         for node in self.valid_nodes():
             value = data[node]
-            rows.append(pd.Series([value["X"], value["Y"], value["Z"], value["XY"], value["YZ"], value["XZ"]], name=node))
+            if "EQV" in value:
+                rows.append(pd.Series([value["X"], value["Y"], value["Z"], value["XY"], value["YZ"], value["XZ"], value["EQV"]], name=node))
+            else:
+                rows.append(pd.Series([value["X"], value["Y"], value["Z"], value["XY"], value["YZ"], value["XZ"]], name=node))
 
         return pd.DataFrame(rows)
 
