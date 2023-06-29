@@ -5,16 +5,15 @@ import matplotlib.pyplot as plt
 import pyvista as pv
 import pandas as pd
 
-PARENT_DIR = r'D:\projects\diverters\src'
-CURR_DIR = os.path.join(PARENT_DIR, 'conductivity_effect')
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
 import materials.presets as sampling
-import linearization.surface as surface
 import conductivity_effect.solve
-from linearization.linearization import von_mises, von_mises_strain
 from materials.presets import SampleMaterial
 from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample, NodeContext
+from parametric_solver.util import plot_eqv_stress
 
 
 NODES_DIR = os.path.join(PARENT_DIR, 'inp', 'nodes')
@@ -22,39 +21,30 @@ TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts.node.loc')
 BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs.node.loc')
 ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all.node.loc')
 
-name = conductivity_effect.solve.sample_name(SampleMaterial.WL10, SampleMaterial.PURE_W, False, 'high')
-solver = conductivity_effect.solve.solve(names=[name])
-result = solver.result_from_name(name)
+INP_DIR = os.path.join(CURR_DIR, 'in')
+OUT_DIR = os.path.join(CURR_DIR, 'out')
 
-strain_df = result.strain_dataframe()
+CONDUCTIVITY = SampleMaterial.W_3RHENIUM
+STRUCTURAL = SampleMaterial.W_3RHENIUM
+PLASTIC = False
+CASE = 'high2'
 
-loc1, loc2 = surface.pair_nodes(
-    None,
-    TOP_SURFACE_PATH,
-    BOTTOM_SURFACE_PATH
-)
 
-locs = pd.concat([loc1, loc2])
+def create_result(_conductivity, _structural, _plastic, _case):
+    solver = BilinearThermalSolver(write_path=OUT_DIR, loglevel="INFO", nproc=8)
 
-indeces = np.intersect1d(locs.index.to_numpy(), strain_df.index.to_numpy())
+    sample = BilinearThermalSample()
+    sample.name = conductivity_effect.solve.sample_name(_conductivity, _structural, _plastic, _case) + '_no_temp'
+    sample.input = os.path.join(INP_DIR, "base.inp")
+    sampling.set_structural(sample, _structural, _plastic)
+    sampling.add_pressure_loads(sample, _structural, _case)
+    sampling.add_thermal_loads(sample, _structural, _case)
+    solver.add_sample(sample)
 
-strain_df = strain_df.loc[indeces]
-locs = locs.loc[indeces]
+    solver.solve(verbose=False)
 
-strain_vals = von_mises_strain(strain_df.to_numpy())
-# strain_vals = strain_df.iloc[:, 6].to_numpy()
-pd.set_option('display.max_columns', 500)
-print(strain_df)
-print(strain_vals)
-loc_vals = locs.loc[strain_df.index.to_numpy()].to_numpy()
+    return solver.result_from_name(sample.name)
 
-point_cloud = pv.PolyData(loc_vals)
-point_cloud["strain"] = strain_vals
 
-plotter = pv.Plotter()
-plotter.add_mesh(point_cloud, cmap='turbo', point_size=12)
-plotter.view_vector((10, 10, 10), (0, 0, 0))
-plotter.camera.roll = 240
-plotter.add_title("Strain")
-plotter.render()
-plotter.show()
+result = create_result(CONDUCTIVITY, STRUCTURAL, PLASTIC, CASE)
+plot_eqv_stress(result)

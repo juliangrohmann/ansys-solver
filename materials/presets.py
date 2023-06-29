@@ -118,16 +118,19 @@ def wl10_structural(sample):
     return sample
 
 
-def add_loads(sample, sample_material, case):
-    mat_dir = os.path.join(PARENT_DIR, 'inp', sample_material.value, case)
-    pressure_dir = os.path.join(mat_dir, 'pressure')
-    thermal_dir = os.path.join(mat_dir, 'thermal')
+def add_pressure_loads(sample, sample_material, case):
+    pressure_dir = os.path.join(PARENT_DIR, 'inp', 'processed', sample_material.value, case, 'pressure')
 
-    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf1.out',), 'cool_surf1')
-    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf2.out',), 'cool_surf2')
-    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf3.out',), 'cool_surf3')
-    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf4.out',), 'cool_surf4')
+    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf1.out'), 'cool_surf1')
+    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf2.out'), 'cool_surf2')
+    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf3.out'), 'cool_surf3')
+    sample.add_pressure_load(os.path.join(pressure_dir, 'cool-surf4.out'), 'cool_surf4')
     sample.add_pressure_load(os.path.join(pressure_dir, 'thimble-inner.out'), 'thimble_inner')
 
-    sample.add_thermal_load(os.path.join(thermal_dir, 'thimble_matpoint.out'), 'thimble_matpoint')
-    sample.add_thermal_load(os.path.join(thermal_dir, 'jet_matpoint.out'), 'jet_matpoint')
+
+def add_thermal_loads(sample, sample_material, case):
+    thermal_dir = os.path.join(PARENT_DIR, 'inp', 'processed', sample_material.value, case, 'thermal')
+
+    sample.add_thermal_load(os.path.join(thermal_dir, 'thimble_matpoint.cdb'), 'thimble_matpoint')
+    sample.add_thermal_load(os.path.join(thermal_dir, 'jet_matpoint.cdb'), 'jet_matpoint')
+

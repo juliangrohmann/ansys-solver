@@ -1,7 +1,5 @@
 import os.path
 import sys
-import numpy as np
-import pyvista as pv
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
@@ -10,7 +8,7 @@ sys.path.append(PARENT_DIR)
 import materials.presets as sampling
 from materials.presets import SampleMaterial
 from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample, NodeContext
-import linearization.surface as surface
+
 
 HEAT_LOADS = ['low', 'nominal', 'high2', 'high']
 
@@ -47,6 +45,8 @@ def solve(names=None):
 
             sample.input = os.path.join(INP_DIR, f"{conductivity.value}_{case}.inp")
             sampling.set_structural(sample, structural, plastic)
+            # sampling.add_pressure_loads(sample, structural, case)
+            # sampling.add_thermal_loads(sample, structural, case)
             solver.add_sample(sample)
 
     solver.solve(verbose=False)

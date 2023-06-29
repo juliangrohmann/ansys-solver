@@ -7,6 +7,8 @@ import hashlib
 import json
 import enum
 import numpy as np
+import pandas as pd
+import shutil
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(PARENT_DIR)
@@ -42,7 +44,6 @@ class ParametricSolver(abc.ABC):
             The input file will be modified to exclude solving.
         """
         self._samples = []
-        self._results = {}
         self._write_path = write_path
         self._mapdl_kwargs = kwargs
 
@@ -57,18 +58,6 @@ class ParametricSolver(abc.ABC):
             The list containing all added samples at which a solution is to be obtained, or has already been obtained.
         """
         return self._samples
-
-    @property
-    def results(self):
-        """
-        Accessor to the result dictionary.
-
-        Returns
-        -------
-        dict
-            The dictionary containing all obtained results. Keys are sample tuples, values are APDLResult objects.
-        """
-        return self._results
 
     def result_from_name(self, name):
         """
@@ -89,8 +78,12 @@ class ParametricSolver(abc.ABC):
                 target_sample = sample
                 break
 
-        if target_sample and target_sample in self._results:
-            return self._results[target_sample]
+        if target_sample:
+            filepath = os.path.join(self._write_path, self._eval_filename(target_sample))
+            if os.path.exists(filepath):
+                with open(filepath, "rb") as f:
+                    print(f"Loading cached result from {filepath} ...")
+                    return pickle.load(f)
 
         return None
 
@@ -118,14 +111,13 @@ class ParametricSolver(abc.ABC):
         n = len(self._samples)
 
         for sample in self._samples:
-            print(f"Solving [{i}/{n}]\t\tTime Remaining: {_eval_remaining_time(start_time, i - 1, n - i + 1)}")
+            # print(f"Solving [{i}/{n}]\t\tTime Remaining: {_eval_remaining_time(start_time, i - 1, n - i + 1)}")
+            print(f"Solving [{i}/{n}]")
             print(f"Sample: {sample}")
 
             filepath = os.path.join(self._write_path, self._eval_filename(sample))
             if read_cache and os.path.exists(filepath):
-                with open(filepath, "rb") as f:
-                    print(f"Loading cached result from {filepath} ...")
-                    result = pickle.load(f)
+                print(f"Cached result available.")
             else:
                 result = self._solve_sample(
                     sample,
@@ -135,7 +127,6 @@ class ParametricSolver(abc.ABC):
                     print(f"Caching result at {filepath} ...")
                     pickle.dump(result, f)
 
-            self._results[sample] = result
             i += 1
 
     @abc.abstractmethod
@@ -275,33 +266,32 @@ class BilinearThermalSolver(ParametricSolver):
         return f"{sample}.pkl"
 
     def _setup_solve(self, sample, mat_ids, mapdl_inst):
-        # for mat_id in mat_ids:
-        #     for prop in MatProp:
-        #         value = sample.get_property(prop)
-        #         if value is None:
-        #             continue
-        #
-        #         if isinstance(value, np.ndarray) and value.shape[0] > 1:
-        #             _set_temperature_table(value, prop.value, mat_id, mapdl_inst)
-        #         else:
-        #             _set_property_value(value, prop.value, mat_id, mapdl_inst)
-        #
-        #     if sample.plasticity is not None:
-        #         if isinstance(sample.plasticity, np.ndarray) and sample.plasticity.shape[0] > 1:
-        #             _set_bilinear_plasticity_table(sample.plasticity, mat_id, mapdl_inst)
-        #         else:
-        #             _set_bilinear_plasticity_values(sample.plasticity[0], sample.plasticity[1], mat_id, mapdl_inst)
-        #     else:
-        #         _remove_plasticity(mat_id, mapdl_inst)
-        #
-        # if sample.pressure_loads:
-        #     for pressure in sample.pressure_loads:
-        #         _add_pressure_load(*pressure, mapdl_inst)
-        #
-        # if sample.thermal_loads:
-        #     for thermal in sample.thermal_loads:
-        #         _add_thermal_load(*thermal, mapdl_inst)
-        pass
+        for mat_id in mat_ids:
+            for prop in MatProp:
+                value = sample.get_property(prop)
+                if value is None:
+                    continue
+
+                if isinstance(value, np.ndarray) and value.shape[0] > 1:
+                    _set_temperature_table(value, prop.value, mat_id, mapdl_inst)
+                else:
+                    _set_property_value(value, prop.value, mat_id, mapdl_inst)
+
+            if sample.plasticity is not None:
+                if isinstance(sample.plasticity, np.ndarray) and sample.plasticity.shape[0] > 1:
+                    _set_bilinear_plasticity_table(sample.plasticity, mat_id, mapdl_inst)
+                else:
+                    _set_bilinear_plasticity_values(sample.plasticity[0], sample.plasticity[1], mat_id, mapdl_inst)
+            else:
+                _remove_plasticity(mat_id, mapdl_inst)
+
+        if sample.pressure_loads:
+            for pressure in sample.pressure_loads:
+                _add_pressure_load(*pressure, mapdl_inst)
+
+        if sample.thermal_loads:
+            for thermal in sample.thermal_loads:
+                _add_thermal_load(thermal, mapdl_inst)
 
 
 class BilinearThermalSample:
@@ -487,19 +477,15 @@ class BilinearThermalSample:
         """
         return self._thermal_loads
 
-    def add_thermal_load(self, filepath, component):
+    def add_thermal_load(self, filepath):
         """
         Parameters
         ----------
         filepath: str
             Path to the file that defines the thermal load. The extensions of the file should be included.
             Should be an absolute directory if the file is not in the working directory.
-
-        component: str
-            Name of the component to which the load is applied. Provided component name needs to be defined
-            in the input file of the parametric solver to which the sample is added.
         """
-        self._thermal_loads.append([filepath, component])
+        self._thermal_loads.append(filepath)
 
     def clear_thermal_loads(self):
         """
@@ -561,7 +547,7 @@ class BilinearThermalSample:
 
         if self._thermal_loads:
             for load in self._thermal_loads:
-                input_str += f"t{_file_to_checksum(load[0], digits=6)}_c{load[1]}_"
+                input_str += f"t{_file_to_checksum(load, digits=6)}_"
 
         hash_obj = hashlib.sha256()
         hash_obj.update(input_str.encode())
@@ -650,56 +636,120 @@ def _remove_plasticity(mat_id, mapdl_inst):
 
 def _add_pressure_load(filename, component, mapdl_inst):
     print(f"Applying pressure load at {filename} to {component} ...")
+    name = os.path.basename(filename)
 
     mapdl_inst.slashmap()
 
     mapdl_inst.ftype("CSV", 0)
-    mapdl_inst.read(filename, 1, "", 1, 2, 3, 4)
+    mapdl_inst.read(filename, 1, "", 2, 3, 4, 5)
     mapdl_inst.target(component)
+    mapdl_inst.map()
+    mapdl_inst.show()
+    mapdl_inst.plgeom()
 
+    temp_dir = os.path.join(os.getcwd(), 'temp')
+    if not os.path.exists(temp_dir):
+        os.mkdir(temp_dir)
+
+    temp_file = os.path.join(temp_dir, name)
+    mapdl_inst.writemap(temp_file)
     mapdl_inst.finish()
 
+    mapdl_inst.slashsolu()
+    mapdl_inst.input(temp_file)
+    mapdl_inst.finish()
 
-def _add_thermal_load(filename, component, mapdl_inst):
-    print(f"Applying thermal load at {filename} to {component} ...")
+    shutil.rmtree(temp_dir)
 
-    print(f"Working dir = {os.getcwd()}")
+
+def _add_thermal_load(filename, mapdl_inst):
+    print(f"Applying thermal load at {filename} ...")
+
+    # print(f"Working dir = {os.getcwd()}")
+    # filename = filename.replace('\\', '/')
+    # real_filename, ext = os.path.splitext(filename)
+    # ext = ext.replace('.', '')
+    # print(f"Real filename = {real_filename}")
+    #
+    # mapdl_inst.cmsel("S", component)
+    # mapdl_inst.nsle("R", "ACTIVE")
+    #
+    # mapdl_inst.prep7()
+    #
+    # skiplines = 1
+    # numlines_str = mapdl_inst.inquire("numlines", "LINES", real_filename, ext)
+    # numlines = int(numlines_str.split('.')[0])
+    # print(f"numlines_str = {numlines_str}, numlines = {numlines}")
+    #
+    # mapdl_inst.dim("temp_data", "TABLE", numlines - skiplines - 1, 4)
+    # mapdl_inst.tread("temp_data", real_filename, ext, skiplines)
+    #
+    # # mapdl_inst.starstatus("temp_data")
+    #
+    # mapdl_inst.dim("locs", "ARRAY", numlines - skiplines, 3)
+    # mapdl_inst.dim("near_nodes", "ARRAY", numlines - skiplines)
+    # mapdl_inst.dim("temp_vals", "ARRAY", numlines - skiplines)
+    #
+    # mapdl_inst.vfun("locs(1,1)", "copy", "temp_data(0, 1)")
+    # mapdl_inst.vfun("locs(1,2)", "copy", "temp_data(0, 2)")
+    # mapdl_inst.vfun("locs(1,3)", "copy", "temp_data(0, 3)")
+    # mapdl_inst.vfun("temp_vals(1)", "copy", "temp_data(0, 4)")
+    #
+    # # mapdl_inst.starstatus("locs")
+    # # mapdl_inst.starstatus("temp_vals")
+    #
+    # mapdl_inst.starvget("interp_nodes", "NODE", "", "NLIST")
+    #
+    # interp_count = mapdl_inst.get("interp_count", "NODE", "", "COUNT")
+    # print(f"interp_count = {interp_count}")
+    # mapdl_inst.dim("interp_locs", "ARRAY", interp_count, 3)
+    #
+    # # mapdl_inst.starstatus("near_nodes")
+    #
+    # loc_code = """
+    # *DO,i,1,interp_count
+    #     *GET,interp_locs(i,1),NODE,interp_nodes(i),LOC,X
+    #     *GET,interp_locs(i,2),NODE,interp_nodes(i),LOC,Y
+    #     *GET,interp_locs(i,3),NODE,interp_nodes(i),LOC,Z
+    # *ENDDO
+    # """
+    #
+    # mapdl_inst.input_strings(loc_code)
+    #
+    # for i in range(1, 10):
+    #     print(mapdl_inst.com(f"X %interp_locs({i},1)% Y %interp_locs({i},2)% Z %interp_locs({i},3)%"))
+    #
+    # mapdl_inst.moper("interp_temp", "interp_locs", "MAP", "temp_vals", "locs")
+    #
+    # mapdl_inst.starstatus("interp_temp")
+    #
+    # mapdl_inst.bf("", "TEMP", "%temp_data%")
+
+    # legacy:
+    # mapdl_inst.dim("extnode", "ARRAY", numlines - skiplines)
+    # mapdl_inst.dim("extdat", "ARRAY", numlines - skiplines)
+    #
+    # mapdl_inst.vfun("extnode(1)", "copy", "node_data(1, 0)")
+    # mapdl_inst.vfun("extdat(1)", "copy", "node_data(1, 1)")
+    #
+    # apdl_code = """
+    # *DO,i,1,numlines - skiplines
+    #     BF,extnode(i),TEMP,extdat(i) - 273.15
+    # *ENDDO
+    # """
+
+    # mapdl_inst.run(f"skiplines = {skiplines}")
+    # mapdl_inst.input_strings(apdl_code)
+
+    # mapdl_inst.esel("ALL")
+    # mapdl_inst.nsel("ALL")
+    #
+    # mapdl_inst.finish()
+
     filename = filename.replace('\\', '/')
-    real_filename, ext = os.path.splitext(filename)
-    ext = ext.replace('.', '')
-    print(f"Real filename = {real_filename}")
 
-    mapdl_inst.cmsel("S", component)
-    mapdl_inst.nsle("R", "ACTIVE")
-
-    mapdl_inst.prep7()
-
-    skiplines = 1
-    numlines_str = mapdl_inst.inquire("numlines", "LINES", real_filename, ext)
-    numlines = int(numlines_str.split('.')[0])
-    print(f"numlines_str = {numlines_str}, numlines = {numlines}")
-
-    mapdl_inst.dim("node_data", "TABLE", numlines - skiplines)
-    mapdl_inst.tread("node_data", real_filename, ext, skiplines)
-
-    mapdl_inst.dim("extnode", "ARRAY", numlines - skiplines)
-    mapdl_inst.dim("extdat", "ARRAY", numlines - skiplines)
-
-    mapdl_inst.vfun("extnode(1)", "copy", "node_data(1, 0)")
-    mapdl_inst.vfun("extdat(1)", "copy", "node_data(1, 1)")
-
-    apdl_code = """
-    *DO,i,1,numlines - skiplines
-        BF,extnode(i),TEMP,extdat(i) - 273.15
-    *ENDDO
-    """
-
-    mapdl_inst.run(f"skiplines = {skiplines}")
-    mapdl_inst.input_strings(apdl_code)
-
-    mapdl_inst.esel("ALL")
-    mapdl_inst.nsel("ALL")
-
+    mapdl_inst.slashsolu()
+    mapdl_inst.input(filename)
     mapdl_inst.finish()
 
 
@@ -724,7 +774,7 @@ class NodeContext:
         self._components = []
         self._component_map = {}
 
-    def add_component(self, component, inactive=True, mid=False):
+    def add_component(self, component, inactive=True, mid=True, elements=False):
         """
         Registers a component name for which to retrieve and store nodal information.
 
@@ -738,41 +788,42 @@ class NodeContext:
 
         mid: bool
             Whether to store mid-nodes
+
+        elements: bool
+            Whether the named selection is defined as an element selection
         """
-        self._components.append((component, inactive, mid))
+        self._components.append((component, inactive, mid, elements))
 
-    def nodes(self, component):
-        return list(self._component_map[component].keys())
-
-    def location_map(self, component):
+    def result(self, component):
         return self._component_map[component]
 
     def write(self, component, path, mult=None):
-        out = ""
-        locs = self.location_map(component)
+        self._component_map[component].to_csv(path)
+        # out = ""
+        # locs = self.location_map(component)
+        #
+        # for node in locs.keys():
+        #     vals = locs[node]
+        #
+        #     if mult is not None:
+        #         vals = [val * mult for val in vals]
+        #
+        #     str_locs = [str(loc) for loc in vals]
+        #     out += ','.join([str(node), *str_locs]) + '\n'
+        #
+        # with open(path, 'w') as f:
+        #     f.write(out)
 
-        for node in locs.keys():
-            vals = locs[node]
-
-            if mult is not None:
-                vals = [val * mult for val in vals]
-
-            str_locs = [str(loc) for loc in vals]
-            out += ','.join([str(node), *str_locs]) + '\n'
-
-        with open(path, 'w') as f:
-            f.write(out)
-
-    def run(self):
+    def run(self, **kwargs):
         """
         Retrieves and stores the nodal information for each registered component name.
         """
-        _mapdl = get_mapdl()
+        _mapdl = get_mapdl(**kwargs)
 
         _mapdl.clear()
         _mapdl.input(self._inp_file)
 
-        for component, inactive, mid in self._components:
+        for component, inactive, mid, elements in self._components:
             print(f"Caching {component} ...")
 
             if component.lower() == 'all':
@@ -780,13 +831,16 @@ class NodeContext:
             else:
                 _mapdl.cmsel("S", component)
 
+            if elements:
+                _mapdl.nsle("S", "ALL")
+
             if not inactive:
                 _mapdl.nsle("R", "ACTIVE")
 
             if not mid:
                 _mapdl.nsle("U", "MID")
 
-            nodes = {}
+            data = []
             node_list = _mapdl.nlist()
             for line in node_list.split('\n'):
                 vals = line.split()[:4]
@@ -794,13 +848,15 @@ class NodeContext:
                     continue
 
                 try:
-                    vals = (int(vals[0]), float(vals[1]), float(vals[2]), float(vals[3]))
+                    vals = [int(vals[0]), float(vals[1]), float(vals[2]), float(vals[3])]
                 except ValueError:
                     continue
 
-                nodes[vals[0]] = (vals[1], vals[2], vals[3])
+                data.append(vals)
 
-            self._component_map[component] = nodes
+            df = pd.DataFrame(data, columns=['node', 'x', 'y', 'z'])
+            df.set_index(df.columns[0], inplace=True)
+            self._component_map[component] = df
 
 
 def _eval_remaining_time(start_time, completed, remaining):
