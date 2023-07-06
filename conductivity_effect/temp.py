@@ -27,7 +27,7 @@ OUT_DIR = os.path.join(CURR_DIR, 'out')
 CONDUCTIVITY = SampleMaterial.W_3RHENIUM
 STRUCTURAL = SampleMaterial.W_3RHENIUM
 PLASTIC = False
-CASE = 'high2'
+CASE = 'high'
 
 
 def create_result(_conductivity, _structural, _plastic, _case):

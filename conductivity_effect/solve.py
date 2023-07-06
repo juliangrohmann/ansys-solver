@@ -10,7 +10,7 @@ from materials.presets import SampleMaterial
 from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample, NodeContext
 
 
-HEAT_LOADS = ['low', 'nominal', 'high2', 'high']
+HEAT_LOADS = ['low', 'nominal', 'high', 'high']
 
 OUT_DIR = os.path.join(CURR_DIR, 'out')
 INP_DIR = os.path.join(CURR_DIR, 'in')

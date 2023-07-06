@@ -34,17 +34,17 @@ def principal_stresses(tens: np.ndarray) -> np.ndarray:
     return np.linalg.eigvalsh(mat.swapaxes(1, -1)).swapaxes(-2, -1).squeeze()
 
 
-def von_mises(stress: np.ndarray, strain=False):
+def von_mises(values: np.ndarray, is_strain=False):
     """
     compute von-mises stresses
     """
 
-    if strain:
-        return von_mises_strain(stress)
-    elif stress.shape[1] == 3:
-        return _von_mises_from_primary(stress)
+    if is_strain:
+        return von_mises_strain(values)
+    elif values.shape[1] == 3:
+        return _von_mises_from_primary(values)
     else:
-        return _von_mises_from_full(stress)
+        return _von_mises_from_full(values)
 
 
 # def von_mises_strain(strain: np.ndarray):
@@ -231,7 +231,7 @@ class APDLIntegrate:
         stresses
         """
         mt = self.membrane_tensor(averaged=False)
-        vm = von_mises(mt, strain=strain)
+        vm = von_mises(mt, is_strain=strain)
 
         if averaged:
             return vm.mean(axis=-1)
@@ -244,7 +244,7 @@ class APDLIntegrate:
         stresses
         """
         bt = self.bending_tensor(averaged=False)
-        vm = von_mises(bt, strain=strain)
+        vm = von_mises(bt, is_strain=strain)
 
         if averaged:
             return vm[:, 0]

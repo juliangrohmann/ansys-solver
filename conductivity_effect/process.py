@@ -14,8 +14,8 @@ OUT_BASE_DIR = os.path.join(PARENT_DIR, 'inp', 'processed')
 
 # MATERIALS = [SampleMaterial.W_3RHENIUM, SampleMaterial.WL10]
 MATERIALS = [SampleMaterial.W_3RHENIUM]
-# CASES = ['low', 'nominal', 'high', 'high2']
-CASES = ['high2']
+# CASES = ['low', 'nominal', 'high', 'high']
+CASES = ['high']
 PRESSURES = ['cool-surf1', 'cool-surf2', 'cool-surf3', 'cool-surf4', 'thimble-inner']
 THERMALS = ['jet_matpoint', 'thimble_matpoint']
 

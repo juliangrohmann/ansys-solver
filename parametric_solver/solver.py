@@ -277,6 +277,9 @@ class BilinearThermalSolver(ParametricSolver):
                 else:
                     _set_property_value(value, prop.value, mat_id, mapdl_inst)
 
+            if sample.hill is not None:
+                _set_hill_table(sample.hill, mat_id, mapdl_inst)
+
             if sample.plasticity is not None:
                 if isinstance(sample.plasticity, np.ndarray) and sample.plasticity.shape[0] > 1:
                     _set_bilinear_plasticity_table(sample.plasticity, mat_id, mapdl_inst)
@@ -299,6 +302,7 @@ class BilinearThermalSample:
         self._name = None
         self._input = None
         self._plasticity = None
+        self._hill = None
         self._properties = {}
         self._pressure_loads = []
         self._thermal_loads = []
@@ -434,6 +438,14 @@ class BilinearThermalSample:
         Units are determined by the input file of the parametric solver to which the sample is added.
         """
         self._plasticity = value
+
+    @property
+    def hill(self):
+        return self._hill
+
+    @hill.setter
+    def hill(self, value):
+        self._hill = value
 
     @property
     def pressure_loads(self):
@@ -609,6 +621,25 @@ def _set_bilinear_plasticity_table(table, mat_id, mapdl_inst):
     for i in range(n):
         mapdl_inst.tbtemp(table[i, 0])
         mapdl_inst.tbdata(1, table[i, 1], table[i, 2])
+
+    mapdl_inst.finish()
+
+
+def _set_hill_table(table, mat_id, mapdl_inst):
+    print(f"Setting hill table for material id {mat_id} ...")
+    print("Table:")
+    print(table)
+
+    mapdl_inst.prep7()
+
+    n = table.shape[0]
+
+    mapdl_inst.tbdele("HILL", mat_id)
+    mapdl_inst.tb("HILL", mat_id, n)
+
+    for i in range(n):
+        mapdl_inst.tbtemp(table[i, 0])
+        mapdl_inst.tbdata(1, table[i, 1], table[i, 2], table[i, 3], table[i, 4], table[i, 5], table[i, 6])
 
     mapdl_inst.finish()
 

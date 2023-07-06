@@ -53,8 +53,8 @@ X, Y = np.meshgrid(X, Y)
 interp = LinearNDInterpolator(list(zip(x, y)), z)
 Z = interp(X, Y)
 
-df = pd.DataFrame({'heat_flux': X, 'mass_flow_rate': y, 'max_eqv_stress': z})
-df.to_csv(os.path.join(CURR_DIR, 'lin_interp.frame'))
+df = pd.DataFrame({'heat_flux': x, 'mass_flow_rate': y, 'max_eqv_stress': z})
+df.to_csv(os.path.join(CURR_DIR, 'parametric.frame'))
 
 # plt.pcolormesh(X, Y, Z, shading='auto')
 # plt.plot(x, y, "ok", label="Solution result")
@@ -71,3 +71,5 @@ df.to_csv(os.path.join(CURR_DIR, 'lin_interp.frame'))
 # ax.set_zlabel("Max. Eqv. Stress (MPa)", labelpad=-2)
 # ax.scatter(X, Y, Z)
 # plt.show()
+
+
