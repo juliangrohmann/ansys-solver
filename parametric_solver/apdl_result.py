@@ -1,8 +1,21 @@
+import os.path
+import sys
 import math
 import numpy as np
 import pandas as pd
 
-from linearization.linearization import APDLIntegrate
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURR_DIR)
+sys.path.append(PARENT_DIR)
+
+import linearization.surface as surface
+import linearization.linearization as linearization
+
+
+NODES_DIR = os.path.join(PARENT_DIR, 'inp', 'nodes')
+_TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts.node.loc')
+_BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs.node.loc')
+_ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all.node.loc')
 
 
 class APDLResult:
@@ -112,50 +125,6 @@ class APDLResult:
         """
         return _flatten_tensor(_map_to_tensor(self.stress, node))
 
-    def linearized_stress_tensor(self, nodes, locations, averaged=True):
-        """
-        Evaluates the linearized stress tensor across a series of nodes.
-
-        Parameters
-        ----------
-        nodes: list<int>
-            The ids of the nodes across which to linearize.
-
-        locations: np.ndarry<float>
-            A (n x 3) array holding the coordinates of the nodes across which to linearize,
-            where n is the amount of nodes.
-
-        averaged: bool
-            If True, averages the tensors across the given nodes,
-            otherwise returns the tensor at each nodes.
-
-        Returns
-        -------
-        If averaged=True: np.ndarray
-            A (n x 6) array, in which each row holds the components of the stress tensor at that node.
-            Components are in the following order:
-            [xx, yy, zz, xy, yz, xz]
-
-        If averaged=False: np.ndarray
-            A (1 x 6) array holding the components of the stress tensor, averaged across the given nodes.
-            Components are in the following order:
-            [xx, yy, zz, xy, yz, xz]
-
-        Notes
-        -----
-        Linearization is performed according to ASME guidelines.
-        """
-        stress = np.array([self.stress_tensor(node) for node in nodes])
-        return _linearize(stress, locations, len(nodes), averaged=averaged)
-
-    def membrane_stress_tensor(self, nodes, locations, averaged=True):
-        stress = np.array([self.stress_tensor(node) for node in nodes])
-        return _membrane(stress, locations, len(nodes), averaged=averaged)
-
-    def bending_stress_tensor(self, nodes, locations, averaged=True):
-        stress = np.array([self.stress_tensor(node) for node in nodes])
-        return _bending(stress, locations, len(nodes), averaged=averaged)
-
     def total_strain(self, node):
         """
         Evaluates the total strain at a node.
@@ -197,42 +166,6 @@ class APDLResult:
             plastic = np.array(_flatten_tensor(_map_to_tensor(self.plastic_strain, node)))
             return elastic + plastic
 
-    def linearized_strain_tensor(self, nodes, locations, averaged=True):
-        """
-        Evaluates the linearized strain tensor across a series of nodes.
-
-        Parameters
-        ----------
-        nodes: list<int>
-            The ids of the nodes across which to linearize.
-
-        locations: np.ndarry<float>
-            A (n x 3) array holding the coordinates of the nodes across which to linearize,
-            where n is the amount of nodes.
-
-        averaged: bool
-            If True, averages the tensors across the given nodes,
-            otherwise returns the tensor at each nodes.
-
-        Returns
-        -------
-        If averaged=True: np.ndarray
-            A (n x 6) array, in which each row holds the components of the strain tensor at that node.
-            Components are in the following order:
-            [xx, yy, zz, xy, yz, xz]
-
-        If averaged=False: np.ndarray
-            A (1 x 6) array holding the components of the strain tensor, averaged across the given nodes.
-            Components are in the following order:
-            [xx, yy, zz, xy, yz, xz]
-
-        Notes
-        -----
-        Linearization is performed according to ASME guidelines.
-        """
-        strain = np.array([self.strain_tensor(node) for node in nodes])
-        return _linearize(strain, locations, len(nodes), averaged=averaged)
-
     def valid_nodes(self):
         """
         Retrieves the ids of all nodes at which a result is available.
@@ -272,30 +205,65 @@ class APDLResult:
 
         return pd.DataFrame(rows)
 
+    def linearized_stress_result(self):
+        dataframe = self.stress_dataframe()
 
-def _linearize(vals, locations, n, averaged=True):
-    membrane = _membrane(vals, locations, n, averaged=averaged)
-    bending = _bending(vals, locations, n, averaged=True)
+        return surface.linearize_surface(
+            _TOP_SURFACE_PATH,
+            _BOTTOM_SURFACE_PATH,
+            dataframe,
+            _ALL_LOCS_PATH,
+            None,
+            False
+        )
 
-    if averaged:
-        return membrane + bending
+    def linearized_strain_result(self):
+        dataframe = self.strain_dataframe()
+        dataframe = dataframe.drop(dataframe.columns[6], axis=1)
 
-    tensors = []
-    for i in range(n):
-        mem_tensor = np.array([membrane[j][i] for j in range(6)])
-        ben_tensor = np.array([bending[j][i] for j in range(6)])
-        tensor = mem_tensor + ben_tensor
-        tensors.append(tensor)
+        return surface.linearize_surface(
+            _TOP_SURFACE_PATH,
+            _BOTTOM_SURFACE_PATH,
+            dataframe,
+            _ALL_LOCS_PATH,
+            None,
+            True
+        )
 
-    return tensors
+    def max_linearized_stresses(self):
+        lin_result = self.linearized_stress_result()
+        return {
+            'membrane': max(lin_result['membrane']),
+            'bending': max(lin_result['bending']),
+            'linearized': max(lin_result['membrane'] + lin_result['bending'])
+        }
 
+    def max_linearized_strains(self):
+        lin_result = self.linearized_strain_result()
+        return {
+            'membrane': max(lin_result['membrane']),
+            'bending': max(lin_result['bending']),
+            'linearized': max(lin_result['membrane'] + lin_result['bending'])
+        }
 
-def _membrane(vals, locations, n, averaged=True):
-    return APDLIntegrate(vals, locations, n).membrane_tensor(averaged=averaged)[0]
+    def max_eqv_stress(self, nodes=None):
+        stress_df = self.stress_dataframe()
 
+        if nodes is not None:
+            stress_df = stress_df[stress_df.index.isin(nodes)]
 
-def _bending(vals, locations, n, averaged=True):
-    return APDLIntegrate(vals, locations, n).bending_tensor(averaged=averaged)[0]
+        eqv_stress = linearization.von_mises(stress_df.values)
+        return max(eqv_stress)
+
+    def max_eqv_strain(self, nodes=None):
+        strain_df = self.strain_dataframe()
+        strain_df = strain_df.drop(strain_df.columns[6], axis=1)
+
+        if nodes is not None:
+            strain_df = strain_df[strain_df.index.isin(nodes)]
+
+        eqv_stress = linearization.von_mises_strain(strain_df.values)
+        return max(eqv_stress)
 
 
 def _flatten_tensor(tensor):
@@ -321,16 +289,3 @@ def von_mises(tensor):
           6 * (tensor[3] ** 2 + tensor[4] ** 2 + tensor[5] ** 2)
 
     return (num / 2) ** 0.5
-
-    # if len(tensor.shape) == 1 or tensor.shape[0] == 1 or tensor.shape[1] == 1:
-    #     num = (tensor[0] - tensor[1]) ** 2 + \
-    #           (tensor[1] - tensor[2]) ** 2 + \
-    #           (tensor[2] - tensor[0]) ** 2 + \
-    #           6 * (tensor[3] ** 2 + tensor[4] ** 2 + tensor[5] ** 2)
-    # else:
-    #     num = (tensor[0][0] - tensor[1][1]) ** 2 + \
-    #           (tensor[1][1] - tensor[2][2]) ** 2 + \
-    #           (tensor[2][2] - tensor[0][0]) ** 2 + \
-    #           6 * (tensor[0][1] ** 2 + tensor[1][2] ** 2 + tensor[2][0] ** 2)
-    #
-    # return (num / 2) ** 0.5

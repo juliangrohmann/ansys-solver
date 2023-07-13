@@ -106,12 +106,10 @@ class ParametricSolver(abc.ABC):
         This method can also be used to load and access the existing results if they have already been solved
         at the provided samples and are located in the write directory.
         """
-        start_time = time.time()
         i = 1
         n = len(self._samples)
 
         for sample in self._samples:
-            # print(f"Solving [{i}/{n}]\t\tTime Remaining: {_eval_remaining_time(start_time, i - 1, n - i + 1)}")
             print(f"Solving [{i}/{n}]")
             print(f"Sample: {sample}")
 

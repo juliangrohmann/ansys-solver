@@ -24,5 +24,4 @@ ALL_LOCS_PATH = os.path.join(_NODES_DIR, 'all.node.loc')
 
 PRESSURES = ['cool-surf1', 'cool-surf2', 'cool-surf3', 'cool-surf4', 'thimble-inner']
 THERMALS = ['jet_matpoint', 'thimble_matpoint']
-# CASES = ['low', 'nominal', 'high']
-CASES = ['high']
+CASES = ['low', 'nominal', 'high']

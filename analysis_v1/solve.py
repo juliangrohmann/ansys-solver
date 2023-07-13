@@ -1,5 +1,6 @@
 import os.path
 import sys
+from ansys.mapdl.core.errors import MapdlExitedError
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
@@ -43,7 +44,13 @@ def solve(start=0, end=100):
 
         solver.add_sample(sample)
 
-    solver.solve(verbose=True)
+    while True:
+        try:
+            solver.solve(verbose=True)
+            break
+        except MapdlExitedError:
+            print("MAPDL Exited Error. Continuing ...")
+
     return solver
 
 

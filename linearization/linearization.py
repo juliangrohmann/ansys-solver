@@ -60,17 +60,18 @@ def von_mises(values: np.ndarray, is_strain=False):
 #                                  np.power(strain[:, 5, ...], 2.0))))
 
 
-def von_mises_strain(strain: np.ndarray):
+def von_mises_strain(values: np.ndarray):
     """
     compute von-mises strains
     """
-    return (1 / (np.sqrt(2) * 1.28)) * \
-                 np.sqrt((np.power(strain[:, 0, ...] - strain[:, 1, ...], 2.0) +
-                          np.power(strain[:, 1, ...] - strain[:, 2, ...], 2.0) +
-                          np.power(strain[:, 2, ...] - strain[:, 0, ...], 2.0) +
-                          1.5 * (np.power(strain[:, 3, ...], 2.0) +
-                                 np.power(strain[:, 4, ...], 2.0) +
-                                 np.power(strain[:, 5, ...], 2.0))))
+    return von_mises(values, is_strain=False)
+    # return (1 / (np.sqrt(2) * 1.28)) * \
+    #              np.sqrt((np.power(values[:, 0, ...] - values[:, 1, ...], 2.0) +
+    #                       np.power(values[:, 1, ...] - values[:, 2, ...], 2.0) +
+    #                       np.power(values[:, 2, ...] - values[:, 0, ...], 2.0) +
+    #                       1.5 * (np.power(values[:, 3, ...], 2.0) +
+    #                              np.power(values[:, 4, ...], 2.0) +
+    #                              np.power(values[:, 5, ...], 2.0))))
 
 
 def _von_mises_from_primary(stress: np.ndarray):

@@ -86,6 +86,23 @@ def w_structural(sample, plastic):
     return sample
 
 
+def custom_structural(sample, elastic_mod_table, plasticity_table):
+    thermal_expansion_table = np.array([
+        [20, 4.5918e-6],
+        [2000, 5.994e-6],
+    ])
+
+    sample.set_property(MatProp.ELASTIC_MODULUS, elastic_mod_table)
+    sample.set_property(MatProp.POISSONS_RATIO, 0.28)
+    sample.set_property(MatProp.DENSITY, 1.928e-8)
+    sample.set_property(MatProp.THERMAL_EXPANSION, thermal_expansion_table)
+
+    if plasticity_table is not None:
+        sample.plasticity = plasticity_table
+
+    return sample
+
+
 def wl10_structural(sample):
     density_table = np.array([
         [20, 1.93e-8],

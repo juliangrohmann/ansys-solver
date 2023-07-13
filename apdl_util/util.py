@@ -18,3 +18,8 @@ def init_mapdl(**kwargs):
     mapdl_inst = launch_mapdl(**kwargs)
     print("Connected.")
     return mapdl_inst
+
+
+def clear_mapdl():
+    global _mapdl
+    _mapdl = None
