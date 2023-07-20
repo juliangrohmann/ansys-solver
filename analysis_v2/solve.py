@@ -26,33 +26,36 @@ YIELD_MODE = ['exp', 'mean', 'vm_crit', 'hill']
 mode = 'exp'
 
 
-def solve_fixed():
+def solve_fixed():    
     solver = BilinearThermalSolver(write_path=config.OUT_DIR, loglevel="INFO", nproc=8)
 
     for case in config.CASES:
-        for frac in np.linspace(0.05, 0.50, 10):
-            percent = int(round(frac * 100))
-            print(f"Adding sample: {case}, {percent} ...")
+        for hardening_frac in np.linspace(0.05, 0.50, 10):
+            for yield_frac in [0.70, 0.90, 1.00] if case == 'high' else [1.00]:
+                hardening_percent = int(round(hardening_frac * 100))
+                yield_percent = int(round(yield_frac * 100))
 
-            sample = BilinearThermalSample()
-            sample.name = f"{case}_{percent}_{mode}"
-            sample.input = config.INP_BASE_FILE
-            set_structural(sample, frac, mode)
+                print(f"Adding sample: {case}, {yield_percent}, {hardening_percent} ...")
 
-            for press in config.PRESSURES:
-                pressure_file = os.path.join(config.PROCESSED_DIR, case, 'pressure', f"{press}.out")
-                sample.add_pressure_load(pressure_file, press.replace("-", "_"))
-            for therm in config.THERMALS:
-                thermal_file = os.path.join(config.PROCESSED_DIR, case, 'thermal', f"{therm}.cdb")
-                sample.add_thermal_load(thermal_file)
+                sample = BilinearThermalSample()
+                sample.name = f"{case}_{yield_percent}_{hardening_percent}_{mode}"
+                sample.input = config.INP_BASE_FILE
+                set_structural(sample, yield_frac, hardening_frac, mode)
 
-            solver.add_sample(sample)
+                for press in config.PRESSURES:
+                    pressure_file = os.path.join(config.PROCESSED_DIR, case, 'pressure', f"{press}.out")
+                    sample.add_pressure_load(pressure_file, press.replace("-", "_"))
+                for therm in config.THERMALS:
+                    thermal_file = os.path.join(config.PROCESSED_DIR, case, 'thermal', f"{therm}.cdb")
+                    sample.add_thermal_load(thermal_file)
+
+                solver.add_sample(sample)
 
     solver.solve(verbose=True)
     return solver
 
 
-def set_structural(sample, plast_factor, yield_mode):
+def set_structural(sample, yield_factor, hardening_factor, yield_mode):
     elastic_mod_table = np.array([
         [500, 3.913e5],  # MPa
         [700, 3.827e5],
@@ -75,7 +78,10 @@ def set_structural(sample, plast_factor, yield_mode):
 
     if yield_mode == 'exp' or yield_mode == 'hill':
         yield_strs = experimental_yield()
-        plasticity_table = np.column_stack((elastic_mod_table[:, 0], yield_strs, elastic_mod_table[:, 1] * plast_factor))
+        plasticity_table = np.column_stack(
+            (elastic_mod_table[:, 0], 
+             yield_strs * yield_factor, 
+             elastic_mod_table[:, 1] * hardening_factor))
         sample.plasticity = plasticity_table
 
     if yield_mode == 'hill':
@@ -86,7 +92,7 @@ def set_structural(sample, plast_factor, yield_mode):
 
 
 def experimental_yield():
-    return [5.643e2, 4.959e2, 4.968e2, 4.347e2, 4.347e2, 4.347e2, 4.347e2]
+    return np.array([5.643e2, 4.959e2, 4.968e2, 4.347e2, 4.347e2, 4.347e2, 4.347e2])
 
 
 def full_yield_tensor():

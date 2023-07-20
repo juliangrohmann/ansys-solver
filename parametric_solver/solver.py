@@ -9,6 +9,7 @@ import enum
 import numpy as np
 import pandas as pd
 import shutil
+from ansys.mapdl.core.errors import MapdlExitedError
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(PARENT_DIR)
@@ -16,7 +17,7 @@ sys.path.append(PARENT_DIR)
 import parametric_solver.inp as inp
 from parametric_solver.apdl_result import APDLResult
 from apdl_util.util import get_mapdl
-
+from apdl_util import util
 
 class ParametricSolver(abc.ABC):
     """
@@ -87,7 +88,7 @@ class ParametricSolver(abc.ABC):
 
         return None
 
-    def solve(self, read_cache=True, verbose=False):
+    def solve(self, read_cache=True, verbose=False, kill=False):
         """
         Solves all added samples and writes the results to the write directory.
 
@@ -117,10 +118,17 @@ class ParametricSolver(abc.ABC):
             if read_cache and os.path.exists(filepath):
                 print(f"Cached result available.")
             else:
-                result = self._solve_sample(
-                    sample,
-                    verbose=verbose)
-
+                while True:
+                    try:
+                        result = self._solve_sample(
+                                sample,
+                                verbose=verbose,
+                                kill=kill)
+                        break
+                    except MapdlExitedError:
+                        print("MAPDL Exited Error. Continuing ...")
+                        util.clear_mapdl()
+                        
                 with open(filepath, "wb") as f:
                     print(f"Caching result at {filepath} ...")
                     pickle.dump(result, f)
@@ -135,8 +143,8 @@ class ParametricSolver(abc.ABC):
     def _eval_filename(self, sample):
         pass
 
-    def _solve_sample(self, sample, mat_ids=(2, 4, 6), verbose=False):
-        _mapdl = get_mapdl(**self._mapdl_kwargs)
+    def _solve_sample(self, sample, mat_ids=(2, 4, 6), verbose=False, kill=False):
+        _mapdl = get_mapdl(kill=kill, **self._mapdl_kwargs)
 
         if not inp.is_inp_valid(sample.input):
             print(f"Unprocessed input file: {sample.input}")

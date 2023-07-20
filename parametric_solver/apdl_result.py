@@ -3,6 +3,7 @@ import sys
 import math
 import numpy as np
 import pandas as pd
+import time
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
@@ -194,20 +195,11 @@ class APDLResult:
         return strain_df
 
     def _dict_to_dataframe(self, data):
-        rows = []
-
-        for node in self.valid_nodes():
-            value = data[node]
-            if "EQV" in value:
-                rows.append(pd.Series([value["X"], value["Y"], value["Z"], value["XY"], value["YZ"], value["XZ"], value["EQV"]], name=node))
-            else:
-                rows.append(pd.Series([value["X"], value["Y"], value["Z"], value["XY"], value["YZ"], value["XZ"]], name=node))
-
-        return pd.DataFrame(rows)
+        df = pd.DataFrame.from_dict(data, orient='index')
+        return df.loc[self.valid_nodes()]
 
     def linearized_stress_result(self):
         dataframe = self.stress_dataframe()
-
         return surface.linearize_surface(
             _TOP_SURFACE_PATH,
             _BOTTOM_SURFACE_PATH,
@@ -220,7 +212,6 @@ class APDLResult:
     def linearized_strain_result(self):
         dataframe = self.strain_dataframe()
         dataframe = dataframe.drop(dataframe.columns[6], axis=1)
-
         return surface.linearize_surface(
             _TOP_SURFACE_PATH,
             _BOTTOM_SURFACE_PATH,
@@ -233,17 +224,17 @@ class APDLResult:
     def max_linearized_stresses(self):
         lin_result = self.linearized_stress_result()
         return {
-            'membrane': max(lin_result['membrane']),
-            'bending': max(lin_result['bending']),
-            'linearized': max(lin_result['membrane'] + lin_result['bending'])
+            'membrane': lin_result['membrane'].max(),
+            'bending': lin_result['bending'].max(),
+            'linearized': (lin_result['membrane'] + lin_result['bending']).max()
         }
 
     def max_linearized_strains(self):
         lin_result = self.linearized_strain_result()
         return {
-            'membrane': max(lin_result['membrane']),
-            'bending': max(lin_result['bending']),
-            'linearized': max(lin_result['membrane'] + lin_result['bending'])
+            'membrane': lin_result['membrane'].max(),
+            'bending': lin_result['bending'].max(),
+            'linearized': (lin_result['membrane'] + lin_result['bending']).max()
         }
 
     def max_eqv_stress(self, nodes=None):
@@ -274,18 +265,3 @@ def _map_to_tensor(result_map, node):
     return [[result_map[node]["X"], result_map[node]["XY"], result_map[node]["XZ"]],
             [result_map[node]["XY"], result_map[node]["Y"], result_map[node]["YZ"]],
             [result_map[node]["XZ"], result_map[node]["YZ"], result_map[node]["Z"]]]
-
-
-def _distance(pos1, pos2):
-    return ((pos1[0] - pos2[0]) ** 2 +
-            (pos1[1] - pos2[1]) ** 2 +
-            (pos1[2] - pos2[2]) ** 2) ** 0.5
-
-
-def von_mises(tensor):
-    num = (tensor[0] - tensor[1]) ** 2 + \
-          (tensor[1] - tensor[2]) ** 2 + \
-          (tensor[2] - tensor[0]) ** 2 + \
-          6 * (tensor[3] ** 2 + tensor[4] ** 2 + tensor[5] ** 2)
-
-    return (num / 2) ** 0.5

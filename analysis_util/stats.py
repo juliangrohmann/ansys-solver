@@ -36,7 +36,7 @@ def plot_np(_df, title=None):
 
 
 def make_gpr(_x_train, _y_train):
-    inp_kernel = kern.RBF(length_scale=10)
+    inp_kernel = kern.RBF(length_scale=10 * np.ones(_x_train.shape[1]))
     _gpr = GaussianProcessRegressor(
         kernel=inp_kernel,
         n_restarts_optimizer=100

@@ -1,6 +1,7 @@
 import os.path
 import sys
 import pandas as pd
+import time
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(CURR_DIR)
@@ -31,19 +32,17 @@ def eval_results(solver, parameters, name_provider, out=None):
         name = name_provider(row)
         result = solver.result_from_name(name)
         print(f"Name: {name}")
-
+        
         add_lin_results(stress, result.max_linearized_stresses())
         add_lin_results(strain, result.max_linearized_strains())
-        stress['eqv'] = stress.get('eqv', []) + [result.max_eqv_stress(nodes=press_bound_nodes)]
-        strain['eqv'] = strain.get('eqv', []) + [result.max_eqv_strain(nodes=press_bound_nodes)]
+        # stress['eqv'] = stress.get('eqv', []) + [result.max_eqv_stress(nodes=press_bound_nodes)]
+        # strain['eqv'] = strain.get('eqv', []) + [result.max_eqv_strain(nodes=press_bound_nodes)]
 
     results_df = pd.DataFrame(
         {
-            'max_eqv_stress': stress['eqv'],
             'membrane_stress': stress['membrane'],
             'bending_stress': stress['bending'],
             'linearized_stress': stress['linearized'],
-            'max_eqv_strain': strain['eqv'],
             'membrane_strain': strain['membrane'],
             'bending_strain': strain['bending'],
             'linearized_strain': strain['linearized']

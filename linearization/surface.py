@@ -3,6 +3,7 @@ import sys
 import pathlib
 import pandas as pd
 import numpy as np
+import time
 from typing import Tuple
 
 PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -57,9 +58,6 @@ def pair_nodes(write_path: pathlib.PurePath, top_surface_path: str, bottom_surfa
     return loc1, loc2
 
 
-scl_points = None
-
-
 def linearize_stresses(write_path: pathlib.PurePath,
                        loc1: pd.DataFrame,
                        loc2: pd.DataFrame,
@@ -101,19 +99,16 @@ def linearize_stresses(write_path: pathlib.PurePath,
     at all intermediate poitns on the plane between the two boundaries
     """
 
-    global scl_points
-
-    if scl_points is None:
-        scl_apdl = SCL(loc1.to_numpy(), loc2.to_numpy())
-        scl_points = scl_apdl(npoints, flattened=True)
-
+    scl_apdl = SCL(loc1.to_numpy(), loc2.to_numpy())
+    scl_points = scl_apdl(npoints, flattened=True)
+    
     node_loc = pd.read_csv(all_locs, index_col=0, header=None)
     node_loc = node_loc.loc[node_sol.index]
 
     scl_sol = interpolate_nodal_values(node_loc.to_numpy(),
                                        node_sol.to_numpy(),
                                        scl_points)
-
+    
     apdl_int = APDLIntegrate(scl_sol, scl_points, npoints)
     membrane = apdl_int.membrane_vm(averaged=True, strain=strain)
     bending = apdl_int.bending_vm(averaged=True, strain=strain)
