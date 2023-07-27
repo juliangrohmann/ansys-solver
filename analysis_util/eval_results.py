@@ -18,7 +18,7 @@ def add_lin_results(dict_target, lin_result):
     dict_target['linearized'] = dict_target.get('linearized', []) + [lin_result['linearized']]
 
 
-def eval_results(solver, parameters, name_provider, out=None):
+def eval_results(solver, parameters, name_provider, flat, out=None):
     if out is None:
         out = os.path.join(CURR_DIR, 'results.frame')
 
@@ -31,10 +31,10 @@ def eval_results(solver, parameters, name_provider, out=None):
     for index, row in parameters.iterrows():
         name = name_provider(row)
         result = solver.result_from_name(name)
-        print(f"Name: {name}")
+        print(f"#{index} Name: {name}")
         
-        add_lin_results(stress, result.max_linearized_stresses())
-        add_lin_results(strain, result.max_linearized_strains())
+        add_lin_results(stress, result.max_linearized_stresses(flat=flat))
+        add_lin_results(strain, result.max_linearized_strains(flat=flat))
         # stress['eqv'] = stress.get('eqv', []) + [result.max_eqv_stress(nodes=press_bound_nodes)]
         # strain['eqv'] = strain.get('eqv', []) + [result.max_eqv_strain(nodes=press_bound_nodes)]
 

@@ -859,7 +859,7 @@ class NodeContext:
 
         _mapdl.clear()
         _mapdl.input(self._inp_file)
-
+        
         for component, inactive, mid, elements in self._components:
             print(f"Caching {component} ...")
 

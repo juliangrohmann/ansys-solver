@@ -1,2 +1,7 @@
 /in
 /out
+/in_flat
+/out_flat
+/out_flat_elastic
+/__pycache__
+*.frame

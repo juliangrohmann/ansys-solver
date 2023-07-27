@@ -6,7 +6,8 @@ import numpy as np
 import time
 from typing import Tuple
 
-PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
 from linearization.vinterp import interpolate_nodal_values
@@ -47,10 +48,18 @@ def pair_nodes(write_path: pathlib.PurePath, top_surface_path: str, bottom_surfa
     node_pair = LSANodePairer.from_locations(top_surface_nodes,
                                              bottom_surface_nodes)
 
-    paired_loc = node_pair.pair()
+    # top_surface_nodes.to_csv(os.path.join(CURR_DIR, 'top_debug.csv'))
+    # bottom_surface_nodes.to_csv(os.path.join(CURR_DIR, 'bot_debug.csv'))
 
-    loc1 = top_surface_nodes.loc[paired_loc[:, 0]]
-    loc2 = bottom_surface_nodes.loc[paired_loc[:, 1]]
+    paired_loc = node_pair.pair()
+    # np.savetxt(os.path.join(CURR_DIR, 'paired.np'), paired_loc, delimiter=",")
+
+    if paired_loc[0, 0] in top_surface_nodes.index:
+        loc1 = top_surface_nodes.loc[paired_loc[:, 0]]
+        loc2 = bottom_surface_nodes.loc[paired_loc[:, 1]]
+    else:
+        loc1 = top_surface_nodes.loc[paired_loc[:, 1]]
+        loc2 = bottom_surface_nodes.loc[paired_loc[:, 0]]
 
     if write_path is not None:
         np.save(str(write_path.joinpath('paired.npy')), paired_loc)

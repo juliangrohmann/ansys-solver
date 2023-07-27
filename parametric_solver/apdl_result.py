@@ -18,6 +18,9 @@ _TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts.node.loc')
 _BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs.node.loc')
 _ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all.node.loc')
 
+_FLAT_TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts_flat.node.loc')
+_FLAT_BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs_flat.node.loc')
+_FLAT_ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all_flat.node.loc')
 
 class APDLResult:
     """
@@ -198,39 +201,49 @@ class APDLResult:
         df = pd.DataFrame.from_dict(data, orient='index')
         return df.loc[self.valid_nodes()]
 
-    def linearized_stress_result(self):
+    def linearized_stress_result(self, flat=False):
         dataframe = self.stress_dataframe()
+        
+        top_path = _FLAT_TOP_SURFACE_PATH if flat else _TOP_SURFACE_PATH
+        bot_path = _FLAT_BOTTOM_SURFACE_PATH if flat else _BOTTOM_SURFACE_PATH
+        all_path = _FLAT_ALL_LOCS_PATH if flat else _ALL_LOCS_PATH
+
         return surface.linearize_surface(
-            _TOP_SURFACE_PATH,
-            _BOTTOM_SURFACE_PATH,
+            top_path,
+            bot_path,
             dataframe,
-            _ALL_LOCS_PATH,
+            all_path,
             None,
             False
         )
 
-    def linearized_strain_result(self):
+    def linearized_strain_result(self, flat=False):
         dataframe = self.strain_dataframe()
         dataframe = dataframe.drop(dataframe.columns[6], axis=1)
+
+        top_path = _FLAT_TOP_SURFACE_PATH if flat else _TOP_SURFACE_PATH
+        bot_path = _FLAT_BOTTOM_SURFACE_PATH if flat else _BOTTOM_SURFACE_PATH
+        all_path = _FLAT_ALL_LOCS_PATH if flat else _ALL_LOCS_PATH
+
         return surface.linearize_surface(
-            _TOP_SURFACE_PATH,
-            _BOTTOM_SURFACE_PATH,
+            top_path,
+            bot_path,
             dataframe,
-            _ALL_LOCS_PATH,
+            all_path,
             None,
             True
         )
 
-    def max_linearized_stresses(self):
-        lin_result = self.linearized_stress_result()
+    def max_linearized_stresses(self, flat=False):
+        lin_result = self.linearized_stress_result(flat=flat)
         return {
             'membrane': lin_result['membrane'].max(),
             'bending': lin_result['bending'].max(),
             'linearized': (lin_result['membrane'] + lin_result['bending']).max()
         }
 
-    def max_linearized_strains(self):
-        lin_result = self.linearized_strain_result()
+    def max_linearized_strains(self, flat=False):
+        lin_result = self.linearized_strain_result(flat=flat)
         return {
             'membrane': lin_result['membrane'].max(),
             'bending': lin_result['bending'].max(),
