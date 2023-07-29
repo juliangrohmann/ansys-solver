@@ -95,111 +95,61 @@ class APDLResult:
                     "EQV": data[1][6]
                 }
 
-    def eqv_stress(self, node):
-        """
-        Evaluates the equivalent (von Mises) stress at a node.
 
-        Parameters
-        ----------
-        node: int
-            The id of the node
+        # self.stress = None
+        # self.elastic_strain = None
+        # self.plastic_strain = None
 
-        Returns
-        -------
-        float
-            The equivalent (von Mises) stress at the given node.
-        """
-        flat_stress = self.stress_tensor(node)
-        return von_mises(flat_stress)
+        # stress_raw = result.nodal_stress(i)
+        # elastic_strain_raw = result.nodal_elastic_strain(i)
 
-    def stress_tensor(self, node):
-        """
-        Evaluates the stress tensor at a node.
+        # try:
+        #     plastic_strain_raw = result.nodal_plastic_strain(i)
+        # except ValueError:
+        #     print("No plastic strain data available!")
 
-        Parameters
-        ----------
-        node: int
-            The id of the node
+        
+        # stress_rows = []
+        # for data in zip(stress_raw[0], stress_raw[1]):
+        #     stress_rows.append(pd.Series([data[0], data[1][0], data[1][1], data[1][2], data[1][3], data[1][4], data[1][5]]))
+        #     self.stress = pd.DataFrame(stress_rows)
+        #     self.stress.columns = ["Node", "X", "Y", "Z", "XY", "YZ", "XZ"]
+        #     self.stress.set_index("Node", inplace=True)
 
-        Returns
-        -------
-        np.array
-            A 1x6 array holding the components of the stress tensor in the following order:
-            [xx, yy, zz, xy, yz, xz]
-        """
-        return _flatten_tensor(_map_to_tensor(self.stress, node))
+        # elastic_strain_rows = []      
+        # for data in zip(elastic_strain_raw[0], elastic_strain_raw[1]):
+        #     elastic_strain_rows.append(pd.Series([data[0], data[1][0], data[1][1], data[1][2], data[1][3], data[1][4], data[1][5], data[1][6]]))
+        #     self.elastic_strain = pd.DataFrame(stress_rows)
+        #     self.elastic_strain.columns = ["Node", "X", "Y", "Z", "XY", "YZ", "XZ", "EQV"]
+        #     self.elastic_strain.set_index("Node", inplace=True)
 
-    def total_strain(self, node):
-        """
-        Evaluates the total strain at a node.
+        # if plastic_strain_raw is not None:
+        #     plastic_strain_rows = []
+        #     for data in zip(plastic_strain_raw[0], plastic_strain_raw[1]):
+        #         plastic_strain_rows.append(pd.Series([data[0], data[1][0], data[1][1], data[1][2], data[1][3], data[1][4], data[1][5], data[1][6]]))
+        #         self.plastic_strain = pd.DataFrame(stress_rows)
+        #         self.plastic_strain.columns = ["Node", "X", "Y", "Z", "XY", "YZ", "XZ", "EQV"]
+        #         self.plastic_strain.set_index("Node", inplace=True)
 
-        Parameters
-        ----------
-        node: int
-            The id of the node
+        t0 = time.time()
+        print("Making dfs")
 
-        Returns
-        -------
-        float
-            The total strain at the given node.
-        """
-        plastic_strain = self.plastic_strain[node]["EQV"] if node in self.plastic_strain else 0
-        return self.elastic_strain[node]["EQV"] + plastic_strain
+        self.stress = pd.DataFrame.from_dict(self.stress, orient='index')
+        self.elastic_strain = pd.DataFrame.from_dict(self.elastic_strain, orient='index')
 
-    def strain_tensor(self, node):
-        """
-        Returns the strain tensor at a node.
+        if self.plastic_strain is not None:
+            self.plastic_strain = pd.DataFrame.from_dict(self.plastic_strain, orient='index')
 
-        Parameters
-        ----------
-        node: int
-            The id of the node
-
-        Returns
-        -------
-        np.ndarray
-            A 1x6 array holding the components of the strain tensor in the following order:
-            [xx, yy, zz, xy, yz, xz]
-        """
-
-        elastic = np.array(_flatten_tensor(_map_to_tensor(self.elastic_strain, node)))
-
-        if node not in self.plastic_strain:
-            return elastic
-        else:
-            plastic = np.array(_flatten_tensor(_map_to_tensor(self.plastic_strain, node)))
-            return elastic + plastic
-
-    def valid_nodes(self):
-        """
-        Retrieves the ids of all nodes at which a result is available.
-
-        Returns
-        -------
-        list<int>
-            A list holding the ids of all nodes that have a valid result.
-
-        Notes
-        -----
-        Nodes without a result are midpoint nodes that are only used during solving.
-        """
-        return [node for node in self.stress if not math.isnan(self.stress[node]["X"])]
+        print(f"Making dfs: {time.time() - t0}")
 
     def stress_dataframe(self):
-        return self._dict_to_dataframe(self.stress)
+        return self.stress
 
     def strain_dataframe(self):
-        strain_df = self._dict_to_dataframe(self.elastic_strain)
-
-        if self.plastic_strain:
-            plastic_df = self._dict_to_dataframe(self.plastic_strain)
-            strain_df = strain_df.add(plastic_df)
-
-        return strain_df
-
-    def _dict_to_dataframe(self, data):
-        df = pd.DataFrame.from_dict(data, orient='index')
-        return df.loc[self.valid_nodes()]
+        if self.plastic_strain is not None:
+            return self.elastic_strain.add(self.plastic_strain)
+        else:
+            return self.elastic_strain
 
     def linearized_stress_result(self, flat=False):
         dataframe = self.stress_dataframe()
@@ -268,13 +218,3 @@ class APDLResult:
 
         eqv_stress = linearization.von_mises_strain(strain_df.values)
         return max(eqv_stress)
-
-
-def _flatten_tensor(tensor):
-    return np.array([tensor[0][0], tensor[1][1], tensor[2][2], tensor[0][1], tensor[1][2], tensor[0][2]])
-
-
-def _map_to_tensor(result_map, node):
-    return [[result_map[node]["X"], result_map[node]["XY"], result_map[node]["XZ"]],
-            [result_map[node]["XY"], result_map[node]["Y"], result_map[node]["YZ"]],
-            [result_map[node]["XZ"], result_map[node]["YZ"], result_map[node]["Z"]]]

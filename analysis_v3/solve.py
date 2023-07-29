@@ -2,6 +2,7 @@ import os.path
 import sys
 import numpy as np
 import pandas as pd
+import argparse
 from ansys.mapdl.core.errors import MapdlExitedError
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,7 +13,7 @@ from materials.presets import custom_structural
 from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSample
 from parametric_solver.sampling import PropertySampler
 from apdl_util import util
-from analysis_v3.configs import flat_config_elastic, flat_config_plastic
+from analysis_v3.configs import config_util
 
 
 PRESSURES = ['cool-surf1', 'cool-surf2', 'cool-surf3', 'cool-surf4', 'thimble-inner']
@@ -23,15 +24,20 @@ BASE_ELASTICITY_TABLE = np.array([
     [500, 3.98e5],  # MPa
     [700, 3.9e5],
     [900, 3.68e5],
-    [1100, 3.33e5]
+    [1100, 3.33e5],
+    [1200, 3.33e5],
+    [1300, 3.33e5],
+    [1400, 3.33e5],
+    [1500, 3.33e5],
+    [1600, 3.33e5],
+    [1700, 3.33e5],
+    [1800, 3.33e5],
+    [1900, 3.33e5],
+    [2000, 3.33e5],
 ])
-# Pure W Yield Strength
-BASE_PLASTICITY_TABLE = np.array([
-    [500, 5.643e2, -1],  # MPa
-    [700, 4.959e2, -1],
-    [900, 4.968e2, -1],
-    [1100, 4.347e2, -1]
-])
+# WL10 Yield Strength
+def yield_strength_poly(t):
+    return 2.979e-7 * t**3 - 1.176e-3 * t**2 + 1.112 * t + 1.305e2
 
 
 def generate_base_params(config):
@@ -41,25 +47,20 @@ def generate_base_params(config):
     params_df.to_csv(config.BASE_PARAMS_DIR)
 
 
-def generate_params(n, config):
+def generate_params(config, n=None):
+    if n is None:
+        n = 5 if config.PLASTIC else 1
+
     params_df = pd.read_csv(config.BASE_PARAMS_DIR, index_col=0)
     params_df = pd.concat([params_df] * n).reset_index()
     params_df.rename(columns={'index': 'load_id'}, inplace=True)
 
-    sampler = PropertySampler()
-
-    if config.IS_ELASTIC_PARAM:
-        sampler.add_property("elastic_mod_factor", 0.70, 1.30)
-
     if config.PLASTIC:
-        sampler.add_property("yield_strength_factor", 0.70, 1.30)
+        sampler = PropertySampler()
+        sampler.add_property("yield_strength_factor", 0.50, 2.00)
         sampler.add_property("tangent_mod_factor", 0.05, 0.40)
-
-    sample_df = sampler.random(len(params_df.index))
-    params_df = pd.concat([params_df, sample_df], axis=1)
-
-    if not config.IS_ELASTIC_PARAM:
-        params_df['elastic_mod_factor'] = np.array([1.0] * len(params_df.index))
+        sample_df = sampler.random(len(params_df.index))
+        params_df = pd.concat([params_df, sample_df], axis=1)
 
     params_df.to_csv(config.SOLVE_PARAMS_DIR)
 
@@ -76,16 +77,7 @@ def solve(config, start=0, end=None):
 
     for index, row in params_df.iterrows():
         sample = BilinearThermalSample()
-
-        if config.PLASTIC:
-            sample.name = f"w_{row['load_id']:.0f}_" \
-                        f"{row['elastic_mod_factor']:.2f}_" \
-                        f"{row['yield_strength_factor']:.2f}_" \
-                        f"{row['tangent_mod_factor']:.2f}"
-        else:
-            sample.name = f"w_{row['load_id']:.0f}_" \
-                        f"{row['elastic_mod_factor']:.2f}"
-        
+        sample.name = config.get_name(row)
         sample.input = os.path.join(config.INP_BASE_DIR, 'base.inp')
 
         print(f"Adding row {index}: {sample.name}")
@@ -95,15 +87,14 @@ def solve(config, start=0, end=None):
         for therm in THERMALS:
             sample.add_thermal_load(os.path.join(config.THERM_DIR, f"{therm}_idx{row['load_id']:.0f}.cdb"))
 
-        elasticity_table = BASE_ELASTICITY_TABLE.copy()
-        elasticity_table[:, 1] *= row['elastic_mod_factor']
-
         if config.PLASTIC:
-            plasticity_table = BASE_PLASTICITY_TABLE.copy()
-            plasticity_table[:, 1] *= row['yield_strength_factor']
-            plasticity_table[:, 2] = BASE_ELASTICITY_TABLE[:, 1] * row['tangent_mod_factor']
+            yield_strs = np.array([yield_strength_poly(temp) for temp in BASE_ELASTICITY_TABLE[:, 0]])
+            yield_strs *= row['yield_strength_factor']
+            tangent_mods = BASE_ELASTICITY_TABLE[:, 1] * row['tangent_mod_factor']
+            plasticity_table = np.column_stack((BASE_ELASTICITY_TABLE[:, 0], yield_strs, tangent_mods))
+            print(plasticity_table)
         
-        custom_structural(sample, elasticity_table, plasticity_table if config.PLASTIC else None)
+        custom_structural(sample, BASE_ELASTICITY_TABLE, plasticity_table if config.PLASTIC else None)
 
         solver.add_sample(sample)
 
@@ -113,6 +104,11 @@ def solve(config, start=0, end=None):
 
 
 if __name__ == '__main__':
-    # generate_base_params(flat_config_elastic)
-    # generate_params(3, flat_config_elastic)
-    solve(flat_config_plastic)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('shape', type=str)
+    parser.add_argument('plastic', type=str)
+    parser.add_argument('start', type=int)
+    parser.add_argument('end', type=int)
+    args = parser.parse_args()
+
+    solve(config_util.get_config(args.shape, args.plastic), start=args.start, end=args.end)

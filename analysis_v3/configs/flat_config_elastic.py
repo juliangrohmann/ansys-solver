@@ -12,11 +12,15 @@ PRESS_DIR = os.path.join(PROCESSED_DIR, 'pressure')
 THERM_DIR = os.path.join(PROCESSED_DIR, 'thermal')
 
 RAW_PARAMS_DIR = os.path.join(INP_BASE_DIR, 'parameters.frame')
-BASE_PARAMS_DIR = os.path.join(PARENT_DIR, 'base_parameters_flat.frame')
+BASE_PARAMS_DIR = os.path.join(PARENT_DIR, 'params', 'base_params_flat.frame')
 
 OUT_DIR = os.path.join(PARENT_DIR, 'out_flat_elastic')
-SOLVE_PARAMS_DIR = os.path.join(PARENT_DIR, 'solve_parameters_flat_elastic.frame')
+SOLVE_PARAMS_DIR = os.path.join(PARENT_DIR, 'params', 'solve_params_flat_elastic.frame')
+RESULTS_DIR = os.path.join(PARENT_DIR, 'results', 'result_flat_elastic.frame')
 
 FLAT = True
 PLASTIC = False
-IS_ELASTIC_PARAM = True
+
+
+def get_name(row):
+    return f"wl10_{row['load_id']:.0f}"

@@ -1,7 +1,8 @@
-/in
-/out
+/in_curved
 /in_flat
-/out_flat
+/out_curved_elastic
+/out_curved_plastic
 /out_flat_elastic
+/out_flat_plastic
 /__pycache__
 *.frame
