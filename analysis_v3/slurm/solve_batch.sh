@@ -1,12 +1,3 @@
-mkdir -p ~/scratch/output/err
-cd  ~/scratch/output/err
-rm -rf *
-
-mkdir -p ~/scratch/output/out
-cd  ~/scratch/output/out
-rm -rf *
-
-
 cd ~/scratch/ansys_solver/analysis_v3
 mkdir out_curved_elastic
 mkdir out_curved_plastic
