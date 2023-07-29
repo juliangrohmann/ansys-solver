@@ -9,6 +9,7 @@ import enum
 import numpy as np
 import pandas as pd
 import shutil
+import uuid
 from ansys.mapdl.core.errors import MapdlExitedError
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -684,11 +685,8 @@ def _add_pressure_load(filename, component, mapdl_inst):
     mapdl_inst.show()
     mapdl_inst.plgeom()
 
-    temp_dir = os.path.join(os.getcwd(), 'temp')
-    if not os.path.exists(temp_dir):
-        os.mkdir(temp_dir)
-
-    temp_file = os.path.join(temp_dir, name)
+    temp_file = os.path.join(os.getcwd(), "temp_" + str(uuid.uuid4()) + '.txt')
+    print("Temp file =", temp_file)
     mapdl_inst.writemap(temp_file)
     mapdl_inst.finish()
 
@@ -696,7 +694,8 @@ def _add_pressure_load(filename, component, mapdl_inst):
     mapdl_inst.input(temp_file)
     mapdl_inst.finish()
 
-    shutil.rmtree(temp_dir)
+    os.remove(temp_file)
+    # shutil.rmtree(temp_dir)
 
 
 def _add_thermal_load(filename, mapdl_inst):
