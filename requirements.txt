@@ -6,4 +6,5 @@ requests
 urllib3==1.26.15
 matplotlib
 pandas
+pyvista
 scikit-learn

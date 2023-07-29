@@ -9,11 +9,11 @@
 #SBATCH -t 1-00:00:00
 #SBATCH -o %j.out
 #SBATCH --mail-type=ALL
-#SBATCH --output=%j_out.log
-#SBATCH --error=%j_err.log
+#SBATCH --output=~/scratch/output/out/%j_out.log
+#SBATCH --error=~/scratch/output/err/%j_err.log
 
 module load ansys/2023R1
 
 cd ~/scratch
 source venv/bin/activate
-python ansys_solver/analysis_3/solve.py $1 $2 $3 $4
+python ansys_solver/analysis_v3/solve.py $1 $2 $3 $4
