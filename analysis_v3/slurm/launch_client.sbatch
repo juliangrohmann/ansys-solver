@@ -10,7 +10,7 @@
 #SBATCH -o %j.out
 #SBATCH --mail-type=ALL
 #SBATCH --output=%j_out.log
-#SBATCH --error=~%j_err.log
+#SBATCH --error=%j_err.log
 
 module load ansys/2023R1
 
