@@ -695,7 +695,6 @@ def _add_pressure_load(filename, component, mapdl_inst):
     mapdl_inst.finish()
 
     os.remove(temp_file)
-    # shutil.rmtree(temp_dir)
 
 
 def _add_thermal_load(filename, mapdl_inst):

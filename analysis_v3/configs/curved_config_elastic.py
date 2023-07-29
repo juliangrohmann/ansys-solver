@@ -14,7 +14,7 @@ THERM_DIR = os.path.join(PROCESSED_DIR, 'thermal')
 RAW_PARAMS_DIR = os.path.join(INP_BASE_DIR, 'parameters.frame')
 BASE_PARAMS_DIR = os.path.join(PARENT_DIR, 'params', 'base_params_curved.frame')
 
-OUT_DIR = os.path.join(PARENT_DIR, 'analysis_v3', 'out_curved_elastic')
+OUT_DIR = os.path.join(PARENT_DIR, 'out_curved_elastic')
 SOLVE_PARAMS_DIR = os.path.join(PARENT_DIR, 'params', 'solve_params_curved_elastic.frame')
 RESULTS_DIR = os.path.join(PARENT_DIR, 'results', 'result_curved_elastic.frame')
 
