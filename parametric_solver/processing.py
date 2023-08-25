@@ -29,12 +29,13 @@ def process_temperature(in_path, out_path):
     df.to_csv(out_path)
 
 
-def write_temperature_load(load_path, component):
+def write_temperature_load(load_path, component, flat):
     raw_data = pd.read_csv(load_path, index_col=0)
     raw_locs = raw_data.iloc[:, 0:3]
     raw_temps = raw_data.iloc[:, 3]
 
-    target_data = pd.read_csv(os.path.join(NODE_DIR, component + '.loc'), index_col=0)
+    target_nodes = os.path.join(NODE_DIR, f"flat_{component}.loc" if flat else f"{component}.loc")
+    target_data = pd.read_csv(target_nodes, index_col=0)
     target_locs = target_data.iloc[:, 0:3]
 
     lin_interp = NearestNDInterpolator(raw_locs, raw_temps)

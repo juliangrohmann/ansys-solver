@@ -142,6 +142,8 @@ class APDLResult:
 
         print(f"Making dfs: {time.time() - t0}")
 
+        result.plot_principal_nodal_stress(i, comp="SEQV")
+
     def stress_dataframe(self):
         return self.stress
 

@@ -52,17 +52,33 @@ def generate_params(config, n=None):
         n = 5 if config.PLASTIC else 1
 
     params_df = pd.read_csv(config.BASE_PARAMS_DIR, index_col=0)
+
+    tangent_mods_df = sample_tangent_mod(len(params_df.index))
+
     params_df = pd.concat([params_df] * n).reset_index()
     params_df.rename(columns={'index': 'load_id'}, inplace=True)
 
     if config.PLASTIC:
         sampler = PropertySampler()
         sampler.add_property("yield_strength_factor", 0.50, 2.00)
-        sampler.add_property("tangent_mod_factor", 0.05, 0.40)
         sample_df = sampler.random(len(params_df.index))
+        sample_df = pd.concat([sample_df, tangent_mods_df], axis=1)
         params_df = pd.concat([params_df, sample_df], axis=1)
 
     params_df.to_csv(config.SOLVE_PARAMS_DIR)
+
+
+def sample_tangent_mod(n):
+    low_vals = np.linspace(0.01, 0.03, 6)
+    high_vals = np.linspace(0.04, 0.1, 4)
+    vals = np.concatenate((low_vals, high_vals))
+
+    result = np.array([])
+    for i in range(n):
+        sample = np.random.choice(vals, size=4, replace=True)
+        result = np.concatenate((result, sample))
+
+    return pd.DataFrame(result, columns=['tangent_mod_factor'])
 
 
 def solve(config, start=0, end=None):
@@ -73,12 +89,13 @@ def solve(config, start=0, end=None):
 
     params_df = params_df.iloc[start:end, :]
 
-    solver = BilinearThermalSolver(write_path=config.OUT_DIR, nproc=8)
+    solver = BilinearThermalSolver(write_path=config.OUT_DIR, log_apdl=config.LOG_DIR if hasattr(config, 'LOG_DIR') else None, nproc=8)
 
     for index, row in params_df.iterrows():
         sample = BilinearThermalSample()
         sample.name = config.get_name(row)
         sample.input = os.path.join(config.INP_BASE_DIR, 'base.inp')
+        sample.mat_ids = (2, 3) if config.FLAT else (2, 4, 6)
 
         print(f"Adding row {index}: {sample.name}")
 
@@ -103,12 +120,15 @@ def solve(config, start=0, end=None):
     return solver
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('shape', type=str)
-    parser.add_argument('plastic', type=str)
-    parser.add_argument('start', type=int)
-    parser.add_argument('end', type=int)
-    args = parser.parse_args()
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('shape', type=str)
+#     parser.add_argument('plastic', type=str)
+#     parser.add_argument('start', type=int)
+#     parser.add_argument('end', type=int)
+#     args = parser.parse_args()
 
-    solve(config_util.get_config(args.shape, args.plastic), start=args.start, end=args.end)
+#     solve(config_util.get_config(args.shape, args.plastic), start=args.start, end=args.end)
+
+
+generate_params(config_util.get_config('flat', 'plastic'), n=4)

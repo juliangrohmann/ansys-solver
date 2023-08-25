@@ -17,27 +17,34 @@ from parametric_solver.solver import BilinearThermalSolver, BilinearThermalSampl
 
 
 NODES_DIR = os.path.join(PARENT_DIR, 'inp', 'nodes')
-TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts.node.loc')
-BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs.node.loc')
-ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all.node.loc')
+
+CURVED_TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts.node.loc')
+CURVED_BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs.node.loc')
+CURVED_ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all.node.loc')
+
+FLAT_TOP_SURFACE_PATH = os.path.join(NODES_DIR, 'ts_flat.node.loc')
+FLAT_BOTTOM_SURFACE_PATH = os.path.join(NODES_DIR, 'bs_flat.node.loc')
+FLAT_ALL_LOCS_PATH = os.path.join(NODES_DIR, 'all_flat.node.loc')
 
 INP_DIR = os.path.join(CURR_DIR, 'in')
 OUT_DIR = os.path.join(CURR_DIR, 'out')
 
 
-def plot_eqv_stress(result):
-    _plot_df_prop(result.stress_dataframe())
+def plot_eqv_stress(result, flat):
+    _plot_df_prop(result.stress_dataframe(), flat)
 
 
-def plot_eqv_strain(result):
-    _plot_df_prop(result.strain_dataframe())
+def plot_eqv_strain(result, flat):
+    _plot_df_prop(result.strain_dataframe(), flat)
 
 
-def _plot_df_prop(df_vals):
+def _plot_df_prop(df_vals, flat):
+    df_vals = df_vals.dropna()
+    
     loc1, loc2 = surface.pair_nodes(
         None,
-        TOP_SURFACE_PATH,
-        BOTTOM_SURFACE_PATH
+        CURVED_TOP_SURFACE_PATH if not flat else FLAT_TOP_SURFACE_PATH,
+        CURVED_BOTTOM_SURFACE_PATH if not flat else FLAT_BOTTOM_SURFACE_PATH
     )
 
     locs = pd.concat([loc1, loc2])
@@ -52,12 +59,12 @@ def _plot_df_prop(df_vals):
     loc_vals = locs.loc[df_vals.index.to_numpy()].to_numpy()
 
     point_cloud = pv.PolyData(loc_vals)
-    point_cloud["stress"] = stress_vals
+    point_cloud["property"] = stress_vals
 
     plotter = pv.Plotter()
     plotter.add_mesh(point_cloud, cmap='turbo', point_size=12)
     plotter.view_vector((10, 10, 10), (0, 0, 0))
     plotter.camera.roll = 240
-    plotter.add_title("Stress")
+    plotter.add_title("Property Plot")
     plotter.render()
     plotter.show()

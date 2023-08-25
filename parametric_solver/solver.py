@@ -144,7 +144,7 @@ class ParametricSolver(abc.ABC):
     def _eval_filename(self, sample):
         pass
 
-    def _solve_sample(self, sample, mat_ids=(2, 4, 6), verbose=False, kill=False):
+    def _solve_sample(self, sample, verbose=False, kill=False):
         _mapdl = get_mapdl(kill=kill, **self._mapdl_kwargs)
 
         if not inp.is_inp_valid(sample.input):
@@ -155,7 +155,7 @@ class ParametricSolver(abc.ABC):
         _mapdl.clear()
         _mapdl.input(sample.input)
 
-        self._setup_solve(sample, mat_ids, _mapdl)
+        self._setup_solve(sample, sample.mat_ids, _mapdl)
 
         _mapdl.finish()
         _mapdl.slashsolu()
@@ -308,6 +308,7 @@ class BilinearThermalSample:
     def __init__(self):
         self._name = None
         self._input = None
+        self._mat_ids = (2, 4, 6)
         self._plasticity = None
         self._hill = None
         self._properties = {}
@@ -353,6 +354,14 @@ class BilinearThermalSample:
     @input.setter
     def input(self, value):
         self._input = value
+
+    @property
+    def mat_ids(self):
+        return self._mat_ids
+    
+    @mat_ids.setter
+    def mat_ids(self, value):
+        self._mat_ids = value
 
     def get_property(self, mat_prop):
         """
@@ -786,10 +795,6 @@ def _add_thermal_load(filename, mapdl_inst):
     mapdl_inst.slashsolu()
     mapdl_inst.input(filename)
     mapdl_inst.finish()
-
-
-def _curr_dir():
-    return os.path.dirname(os.path.abspath(__file__))
 
 
 class NodeContext:

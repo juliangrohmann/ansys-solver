@@ -17,6 +17,7 @@ BASE_PARAMS_DIR = os.path.join(PARENT_DIR, 'params', 'base_params_flat.frame')
 OUT_DIR = os.path.join(PARENT_DIR, 'out_flat_plastic')
 SOLVE_PARAMS_DIR = os.path.join(PARENT_DIR, 'params', 'solve_params_flat_plastic.frame')
 RESULTS_DIR = os.path.join(PARENT_DIR, 'results', 'result_flat_plastic.frame')
+LOG_DIR = os.path.join(PARENT_DIR, 'results', 'flat_plastic_70.log')
 
 FLAT = True
 PLASTIC = True

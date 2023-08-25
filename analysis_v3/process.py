@@ -6,7 +6,7 @@ PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
 from parametric_solver import processing
-from analysis_v3 import flat_config
+from analysis_v3.configs import flat_config_elastic
 
 PRESSURES = ['cool-surf1', 'cool-surf2', 'cool-surf3', 'cool-surf4', 'thimble-inner']
 THERMALS = ['jet_matpoint', 'thimble_matpoint']
@@ -16,7 +16,7 @@ def process(config, blacklist=[]):
     press_out_dir = os.path.join(config.PRESS_DIR)
     therm_out_dir = os.path.join(config.THERM_DIR)
 
-    for i in range(0, 100):
+    for i in range(70, 71):
         if i in blacklist:
             continue
 
@@ -39,8 +39,8 @@ def process(config, blacklist=[]):
                 os.makedirs(therm_out_dir)
 
             processing.process_temperature(inp_path, out_path)
-            processing.write_temperature_load(out_path, thermal)
+            processing.write_temperature_load(out_path, thermal, config.FLAT)
 
 
 if __name__ == '__main__':
-    process(flat_config)
+    process(flat_config_elastic)
