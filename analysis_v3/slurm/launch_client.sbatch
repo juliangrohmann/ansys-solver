@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -J hemj_curved_elastic
-#SBATCH --account=gts-my14
+#SBATCH --account=gts-my14-paid
 #SBATCH -q inferno
 #SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=8
