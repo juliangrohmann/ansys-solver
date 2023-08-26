@@ -89,7 +89,7 @@ def solve(config, start=0, end=None):
 
     params_df = params_df.iloc[start:end, :]
 
-    solver = BilinearThermalSolver(write_path=config.OUT_DIR, log_apdl=config.LOG_DIR if hasattr(config, 'LOG_DIR') else None, nproc=8)
+    solver = BilinearThermalSolver(write_path=config.OUT_DIR, nproc=8)
 
     for index, row in params_df.iterrows():
         sample = BilinearThermalSample()
