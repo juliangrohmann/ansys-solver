@@ -3,9 +3,10 @@ import sys
 import numpy as np
 import pyvista as pv
 import pandas as pd
+from scipy.interpolate import NearestNDInterpolator
 
-PARENT_DIR = r'D:\projects\diverters\src'
-CURR_DIR = os.path.join(PARENT_DIR, 'conductivity_effect')
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURR_DIR)
 sys.path.append(PARENT_DIR)
 
 import materials.presets as sampling
@@ -30,15 +31,28 @@ INP_DIR = os.path.join(CURR_DIR, 'in')
 OUT_DIR = os.path.join(CURR_DIR, 'out')
 
 
-def plot_eqv_stress(result, flat):
-    _plot_df_prop(result.stress_dataframe(), flat)
+def plot_eqv_stress(result, flat, col=None):
+    _plot_df_prop(result.stress_dataframe(), flat, col=col)
 
 
-def plot_eqv_strain(result, flat):
-    _plot_df_prop(result.strain_dataframe(), flat)
+def plot_eqv_strain(result, flat, col=None):
+    _plot_df_prop(result.strain_dataframe(), flat, col=col)
 
+def plot_temperature(df, component, flat):
+    raw_locs = df.iloc[:, 0:3]
+    raw_temps = df.iloc[:, 3]
 
-def _plot_df_prop(df_vals, flat):
+    target_path = os.path.join(NODES_DIR, f'flat_{component}.loc' if flat else f"{component}.loc")
+    target_data = pd.read_csv(target_path, index_col=0)
+    target_locs = target_data.iloc[:, 0:3]
+
+    lin_interp = NearestNDInterpolator(raw_locs, raw_temps)
+    target_data['temperature'] = lin_interp(target_locs)
+    target_data.drop(target_data.columns[[0, 1, 2]], axis=1, inplace=True)
+    print(target_data)
+    _plot_df_prop(target_data, flat, col='temperature')
+
+def _plot_df_prop(df_vals, flat, col=None):
     df_vals = df_vals.dropna()
     
     loc1, loc2 = surface.pair_nodes(
@@ -54,7 +68,11 @@ def _plot_df_prop(df_vals, flat):
     df_vals = df_vals.loc[indeces]
     locs = locs.loc[indeces]
 
-    stress_vals = von_mises(df_vals.to_numpy())
+    if col is None:
+        stress_vals = von_mises(df_vals.to_numpy())
+    else:
+        stress_vals = df_vals[col].to_numpy()
+
     pd.set_option('display.max_columns', 500)
     loc_vals = locs.loc[df_vals.index.to_numpy()].to_numpy()
 

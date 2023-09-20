@@ -52,4 +52,4 @@ if __name__ == '__main__':
     parser.add_argument('end', type=int)
     args = parser.parse_args()
 
-    process(config_util.get_config(args.shape, args.plastic), start=args.start, end=args.end)
+    process(config_util.get_config(args.shape, args.plastic), blacklist=[1, 69], start=args.start, end=args.end)
