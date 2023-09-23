@@ -121,12 +121,11 @@ def solve(config, start=0, end=None):
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('shape', type=str)
-    # parser.add_argument('plastic', type=str)
-    # parser.add_argument('start', type=int)
-    # parser.add_argument('end', type=int)
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('shape', type=str)
+    parser.add_argument('plastic', type=str)
+    parser.add_argument('start', type=int)
+    parser.add_argument('end', type=int)
+    args = parser.parse_args()
 
-    # solve(config_util.get_config(args.shape, args.plastic), start=args.start, end=args.end)
-    generate_params(config_util.get_config('kwsst_curved', 'elastic'))
+    solve(config_util.get_config(args.shape, args.plastic), start=args.start, end=args.end)
