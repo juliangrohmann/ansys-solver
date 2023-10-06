@@ -99,10 +99,10 @@ def solve(config, start=0, end=None):
 
         print(f"Adding row {index}: {sample.name}")
 
-        # for press in PRESSURES:
-        #     sample.add_pressure_load(os.path.join(config.PRESS_DIR, f"{press}_idx{row['load_id']:.0f}.out"), press.replace("-", "_"))
-        # for therm in THERMALS:
-        #     sample.add_thermal_load(os.path.join(config.THERM_DIR, f"{therm}_idx{row['load_id']:.0f}.cdb"))
+        for press in PRESSURES:
+            sample.add_pressure_load(os.path.join(config.PRESS_DIR, f"{press}_idx{row['load_id']:.0f}.out"), press.replace("-", "_"))
+        for therm in THERMALS:
+            sample.add_thermal_load(os.path.join(config.THERM_DIR, f"{therm}_idx{row['load_id']:.0f}.cdb"))
 
         if config.PLASTIC:
             yield_strs = np.array([yield_strength_poly(temp) for temp in BASE_ELASTICITY_TABLE[:, 0]])

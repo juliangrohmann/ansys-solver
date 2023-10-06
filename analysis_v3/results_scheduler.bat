@@ -1,12 +1,11 @@
 D:
-cd D:\projects\diverters\src
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 188 194 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 194 200 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 200 210 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 210 220 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 220 230 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 230 240 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 240 250 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 250 260 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 260 270 1"
-start cmd /k "venv\Scripts\activate.bat && python analysis_v3\results.py 270 273 1"
+cd D:\diverters\src
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 10 20"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 20 30"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 30 40"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 40 50"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 50 60"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 60 70"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 70 80"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 80 90"
+start cmd /k "venv\Scripts\activate.bat && python analysis_v3\process.py kwsst_curved elastic 90 100"
